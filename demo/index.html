@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>中国生物医药出海交易洞察 · Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f7f9;
+    --card: #ffffff;
+    --line: #e6ebf0;
+    --ink: #0f1b2d;
+    --ink-2: #374151;
+    --muted: #7c8898;
+    --accent: #0d9488;
+    --accent-2: #0f766e;
+    --accent-soft: #e6f4f2;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(15,27,45,.04), 0 8px 24px rgba(15,27,45,.05);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: saturate(160%) blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: 1480px; margin: 0 auto; padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand .logo {
+    width: 34px; height: 34px; flex: 0 0 auto; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #0891b2);
+    color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 16px;
+  }
+  .brand h1 { font-size: 16px; margin: 0; letter-spacing: .2px; white-space: nowrap; }
+  .brand p { margin: 2px 0 0; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .nav { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .nav button {
+    border: 0; background: transparent; color: var(--ink-2);
+    padding: 8px 12px; border-radius: 9px; cursor: pointer; font-size: 13px; white-space: nowrap;
+  }
+  .nav button:hover { background: #eef2f6; }
+  .nav button.active { background: var(--ink); color: #fff; }
+
+  .filterbar {
+    position: sticky; top: 61px; z-index: 30;
+    background: #fff; border-bottom: 1px solid var(--line);
+  }
+  .filterbar-inner {
+    max-width: 1480px; margin: 0 auto; padding: 10px 24px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .fgroup { display: flex; align-items: center; gap: 6px; position: relative; }
+  .fgroup > label { font-size: 12px; color: var(--muted); }
+  .dd-btn {
+    border: 1px solid var(--line); background: #fff; color: var(--ink-2);
+    border-radius: 9px; padding: 6px 10px; cursor: pointer; font-size: 12.5px;
+    display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  .dd-btn:hover { border-color: #c9d3dd; }
+  .dd-btn .n { color: var(--accent); font-weight: 600; }
+  .dd-menu {
+    position: absolute; top: 34px; left: 0; min-width: 200px; max-height: 320px; overflow: auto;
+    background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+    padding: 8px; z-index: 50; display: none;
+  }
+  .dd-menu.open { display: block; }
+  .dd-menu label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 12.5px; }
+  .dd-menu label:hover { background: #f2f5f8; }
+  .dd-menu .dot { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+  .f-reset { border: 0; background: transparent; color: var(--accent-2); cursor: pointer; font-size: 12.5px; padding: 6px 8px; }
+  .f-reset:hover { text-decoration: underline; }
+
+  main { max-width: 1480px; margin: 0 auto; padding: 20px 24px 60px; }
+  .page-title { margin: 4px 0 16px; }
+  .page-title h2 { margin: 0; font-size: 20px; }
+  .page-title p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .kpi {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px; box-shadow: var(--shadow);
+  }
+  .kpi .label { font-size: 12px; color: var(--muted); }
+  .kpi .value { font-size: 24px; font-weight: 700; margin-top: 6px; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
+  .kpi .sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  .grid { display: grid; gap: 14px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .g23 { grid-template-columns: 2fr 1fr; }
+  .g32 { grid-template-columns: 1fr 2fr; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px; box-shadow: var(--shadow);
+  }
+  .card h3 { margin: 0 0 4px; font-size: 14.5px; }
+  .card .hint { color: var(--muted); font-size: 12px; margin: 0 0 10px; }
+  .chart { width: 100%; }
+  .ch-sm { height: 220px; }
+  .ch-md { height: 280px; }
+  .ch-lg { height: 340px; }
+
+  .metric-switch, .dim-switch { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .metric-switch button, .dim-switch button {
+    border: 1px solid var(--line); background: #fff; color: var(--ink-2);
+    border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12px;
+  }
+  .metric-switch button.active, .dim-switch button.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-2); font-weight: 600; }
+
+  table.tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.tbl th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table.tbl td { padding: 8px; border-bottom: 1px solid #f0f3f6; vertical-align: top; }
+  table.tbl tr { cursor: pointer; }
+  table.tbl tbody tr:hover { background: #f7fafb; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11.5px; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .leader { display: flex; gap: 14px; flex-wrap: wrap; }
+  .leader .side { flex: 1; min-width: 360px; }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(15,27,45,.35); z-index: 100;
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 16px; max-width: 680px; width: 100%; max-height: 86vh; overflow: auto;
+    padding: 22px; box-shadow: 0 24px 80px rgba(15,27,45,.25);
+  }
+  .modal .x { float: right; border: 0; background: #f0f3f6; border-radius: 8px; cursor: pointer; width: 28px; height: 28px; }
+  .deal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .deal-head .vs { color: var(--muted); font-weight: 600; }
+  .fact { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 18px; margin: 14px 0; }
+  .fact div { font-size: 13px; }
+  .fact .k { color: var(--muted); font-size: 11.5px; display: block; }
+  .note { background: #f7fafb; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: var(--ink-2); }
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 9px; font-size: 12.5px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 200; }
+  .toast.show { opacity: 1; }
+
+  
+  .footprint { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .fp-tile { border:1px solid var(--line); border-radius:12px; padding:12px; cursor:pointer; background:#fff; transition:.15s; position:relative; }
+  .fp-tile:hover { border-color:var(--c); box-shadow:var(--shadow); transform:translateY(-1px); }
+  .fp-tile.active { border-color:var(--c); box-shadow:var(--shadow); }
+  .fp-tile.active::after { content:'✓ 已筛选'; position:absolute; top:8px; right:10px; font-size:11px; color:var(--c); font-weight:600; }
+  .fp-flag { font-size:22px; }
+  .fp-name { font-weight:600; margin-top:6px; font-size:13px; }
+  .fp-n { font-size:20px; font-weight:700; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .fp-v { font-size:11.5px; color:var(--muted); }
+  .fp-bar { height:4px; border-radius:2px; background:#eef2f6; margin-top:8px; overflow:hidden; }
+  .fp-bar span { display:block; height:100%; border-radius:2px; }
+
+  @media (max-width: 1100px) {
+    .kpis { grid-template-columns: repeat(3, 1fr); }
+    .g2, .g3, .g23, .g32 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logo">药</div>
+        <div>
+          <h1>中国生物医药出海交易洞察</h1>
+          <p>China Biopharma Licensing-out Deal Intelligence · 2021–2026 YTD · 演示 Demo</p>
+        </div>
+      </div>
+      <nav class="nav" id="nav"></nav>
+    </div>
+  </header>
+
+  <div class="filterbar"><div class="filterbar-inner" id="filterbar"></div></div>
+
+  <main id="main"></main>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+// ===== 常量 =====
+const MODS = [
+  {k:'ADC', c:'#0d9488'}, {k:'Bispecific', c:'#2563eb'}, {k:'mAb', c:'#7c3aed'},
+  {k:'Small molecule', c:'#d97706'}, {k:'CAR-T / Cell', c:'#dc2626'},
+  {k:'Peptide/Protein', c:'#059669'}, {k:'Vaccine', c:'#0891b2'}, {k:'Other', c:'#9ca3af'}
+];
+const MODMAP = Object.fromEntries(MODS.map(m => [m.k, m]));
+const INDS = ['Oncology','Autoimmune','CNS','Metabolic','Infectious','Rare disease','Vaccine','Other'];
+const STAGES = ['Preclinical','IND approved','Phase I','Phase II','Phase III','Registration','Marketed'];
+const DTYPES = ['License-out','Co-development','Asset transfer','Non-exclusive','Option','M&A','JV','Other'];
+const REGIONS = ['US & Canada','Europe','APAC','Emerging Markets','Global','Other'];
+const CONF = ['high','high','medium','medium','low'];
+
+const COUNTRY_REGION = {
+  'United States':'US & Canada','Canada':'US & Canada',
+  'Germany':'Europe','United Kingdom':'Europe','Switzerland':'Europe','France':'Europe',
+  'Japan':'APAC','South Korea':'APAC','Singapore':'APAC','Australia':'APAC',
+  'Indonesia':'Emerging Markets','India':'Emerging Markets','Brazil':'Emerging Markets',
+  'Global':'Global'
+};
+
+const CN_COMPANIES = ['百济神州 BeiGene','信达生物 Innovent','成都先导 HitGen','英矽智能 Insilico','晶泰科技 XtalPi','天演药业 Adagene','绿叶制药 Luye','百奥泰 Bio-Thera','君实生物 Junshi','沃森生物 Walvax','科伦博泰 Kelun-Biotech','荣昌生物 RemeGen','石药集团 CSPC','科济药业 CARsgen','华东医药 Huadong','上海医药 Shanghai Pharma','济民可信 Jemincare','锐格医药 Regor','诺诚健华 InnoCare','海思科 Haisco'];
+const OS_COMPANIES = ['Novartis','Pfizer','Merck KGaA','AstraZeneca','Johnson & Johnson','Roche','Sanofi','Eli Lilly','Gilead','Takeda','Astellas','Daiichi Sankyo','MSD','Bristol Myers Squibb','Boehringer Ingelheim','Amgen','Regeneron','Biogen','Seagen','Samsung Biologics','LG Chem','SK Bioscience','Handok','Etana'];
+const TARGETS = ['PD-1','PD-L1','HER2','VEGF','CD19','BCMA','TROP2','CLDN18.2','EGFR','KRAS','GLP-1','IL-17','TNF-α','CD47','BTK','OX40'];
+const ASSET_PREFIX = ['SHR','YL','AB','JS','BA','IBI','CM','RC','KD','HH'];
+
+// ===== 可复现的伪随机 =====
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const rnd = mulberry32(20261016);
+
+function pick(arr){ return arr[Math.floor(rnd()*arr.length)]; }
+function wpick(pairs){ // pairs: [[val, weight], ...]
+  let sum = pairs.reduce((s,p)=>s+p[1],0); let r = rnd()*sum;
+  for(const p of pairs){ r -= p[1]; if(r <= 0) return p[0]; }
+  return pairs[pairs.length-1][0];
+}
+function round2(x){ return Math.round(x*100)/100; }
+function fmtM(v){ if(v==null) return '—'; return v >= 1000 ? '$'+(v/1000).toFixed(2)+'B' : '$'+Math.round(v)+'M'; }
+function fmtInt(n){ return n.toLocaleString('en-US'); }
+
+// ===== 生成模拟数据 =====
+const DEALS = [];
+(function gen(){
+  const byYear = {2021:16, 2022:22, 2023:28, 2024:30, 2025:34, 2026:14};
+  let seq = 0;
+  for(const y in byYear){
+    for(let i=0;i<byYear[y];i++){
+      seq++;
+      const t = (+y - 2021)/5; // 0..1
+      const disclosed = rnd() > 0.20;
+      const upfront = disclosed ? round2(Math.exp(2.4 + rnd()*3.6)) : null; // ~11..400 M
+      const ratio = 1.3 + rnd()*5.5;
+      const total = disclosed ? round2(upfront * ratio) : null;
+      const country = wpick([
+        ['United States', .27],['Canada', .03],['Germany', .07],['United Kingdom', .05],
+        ['Switzerland', .04],['France', .02],['Japan', .07],['South Korea', .06],
+        ['Singapore', .03],['Australia', .03],['Indonesia', .03],['India', .03],
+        ['Brazil', .02],['Global', .20]
+      ]);
+      const month = String(1+Math.floor(rnd()*12)).padStart(2,'0');
+      const day = String(1+Math.floor(rnd()*28)).padStart(2,'0');
+      DEALS.push({
+        id: 'DEMO-' + y + '-' + String(seq).padStart(3,'0'),
+        year: +y,
+        date: y + '-' + month + '-' + day,
+        licensor: pick(CN_COMPANIES),
+        licensee: pick(OS_COMPANIES),
+        asset: pick(ASSET_PREFIX) + '-' + (100 + Math.floor(rnd()*900)),
+        target: pick(TARGETS),
+        modality: wpick([
+          ['ADC', .10+.15*t], ['Bispecific', .08+.12*t], ['mAb', .28-.10*t],
+          ['Small molecule', .26-.06*t], ['CAR-T / Cell', .08], ['Peptide/Protein', .08],
+          ['Vaccine', .05], ['Other', .07]
+        ]),
+        indication: wpick([
+          ['Oncology', .46],['Autoimmune', .12],['CNS', .09],['Metabolic', .09],
+          ['Infectious', .09],['Rare disease', .06],['Vaccine', .05],['Other', .04]
+        ]),
+        stage: wpick([
+          ['Preclinical', .34-.12*t],['IND approved', .08],['Phase I', .16],
+          ['Phase II', .16],['Phase III', .14+.08*t],['Registration', .06],['Marketed', .06+.04*t]
+        ]),
+        dealType: wpick([
+          ['License-out', .52],['Co-development', .24],['Asset transfer', .06],
+          ['Non-exclusive', .05],['Option', .05],['M&A', .04],['JV', .03],['Other', .01]
+        ]),
+        country, region: COUNTRY_REGION[country] || 'Other',
+        confidence: pick(CONF),
+        upfront, total,
+        milestone: (disclosed ? round2(total - upfront) : null),
+        disclosed
+      });
+    }
+  }
+})();
+
+// ===== 全局状态 =====
+const state = {
+  page: 'overview',
+  years: [2021, 2026],
+  dealType: new Set(DTYPES),
+  modality: new Set(MODS.map(m=>m.k)),
+  indication: new Set(INDS),
+  stage: new Set(STAGES),
+  region: new Set(REGIONS),
+  search: ''
+};
+
+function filtered(){
+  return DEALS.filter(d =>
+    d.year >= state.years[0] && d.year <= state.years[1] &&
+    state.dealType.has(d.dealType) &&
+    state.modality.has(d.modality) &&
+    state.indication.has(d.indication) &&
+    state.stage.has(d.stage) &&
+    state.region.has(d.region) &&
+    (state.search === '' || (d.licensor+d.licensee+d.asset+d.target+d.indication).toLowerCase().includes(state.search.toLowerCase()))
+  );
+}
+
+const NAV = [
+  ['overview','总览 Overview'], ['landscape','格局 Landscape'], ['economics','金额 Economics'],
+  ['pipeline','技术与管线 Pipeline'], ['therapy','治疗领域 Therapy'], ['companies','公司 Companies'],
+  ['explorer','交易检索 Explorer'], ['network','网络 Network']
+];
+
+// ===== 过滤器栏 =====
+const FILTER_DEFS = [
+  {key:'dealType', label:'交易结构', color: (k)=>'#0d9488', values: DTYPES},
+  {key:'modality', label:'模态', color: (k)=>MODMAP[k] ? MODMAP[k].c : '#9ca3af', values: MODS.map(m=>m.k)},
+  {key:'indication', label:'适应症', color: ()=>'#2563eb', values: INDS},
+  {key:'stage', label:'阶段', color: ()=>'#7c3aed', values: STAGES},
+  {key:'region', label:'地区', color: ()=>'#d97706', values: REGIONS}
+];
+
+function buildNav(){
+  document.getElementById('nav').innerHTML = NAV.map(([k,label]) =>
+    `<button data-page="${k}" class="${state.page===k?'active':''}">${label}</button>`).join('');
+}
+function buildFilterbar(){
+  const years = [2021,2022,2023,2024,2025,2026];
+  let html = `<div class="fgroup"><label>年份</label>
+    <select class="dd-btn" id="fy0">${years.map(y=>`<option ${y===state.years[0]?'selected':''}>${y}</option>`).join('')}</select>
+    <span style="color:var(--muted)">—</span>
+    <select class="dd-btn" id="fy1">${years.map(y=>`<option ${y===state.years[1]?'selected':''}>${y}</option>`).join('')}</select>
+  </div>`;
+  for(const f of FILTER_DEFS){
+    const n = state[f.key].size === f.values.length ? '全部' : state[f.key].size + ' 项';
+    html += `<div class="fgroup">
+      <label>${f.label}</label>
+      <button class="dd-btn" data-dd="${f.key}">${f.label} <span class="n">${n}</span> ▾</button>
+      <div class="dd-menu" data-menu="${f.key}">
+        ${f.values.map(v => `<label><input type="checkbox" data-fk="${f.key}" data-fv="${v}" ${state[f.key].has(v)?'checked':''}> <span class="dot" style="background:${f.color(v)}"></span>${v}</label>`).join('')}
+      </div>
+    </div>`;
+  }
+  html += `<button class="f-reset" id="freset">重置筛选</button>`;
+  document.getElementById('filterbar').innerHTML = html;
+}
+function syncFilterbar(){
+  document.querySelectorAll('[data-dd]').forEach(btn=>{
+    const k = btn.dataset.dd;
+    const def = FILTER_DEFS.find(f=>f.key===k);
+    const n = state[k].size === def.values.length ? '全部' : state[k].size + ' 项';
+    btn.innerHTML = `${def.label} <span class="n">${n}</span> ▾`;
+  });
+}
+
+// ===== 配色 =====
+const DTYPE_COLORS = Object.fromEntries(DTYPES.map((v,i)=>[v,['#0d9488','#2563eb','#d97706','#7c3aed','#059669','#db2777','#0891b2','#9ca3af'][i]]));
+const STAGE_COLORS = Object.fromEntries(STAGES.map((v,i)=>[v,['#9ca3af','#0891b2','#2563eb','#7c3aed','#d97706','#059669','#0d9488'][i]]));
+const REGION_COLORS = Object.fromEntries(REGIONS.map((v,i)=>[v,['#0d9488','#2563eb','#d97706','#7c3aed','#059669','#9ca3af'][i]]));
+const IND_COLORS = Object.fromEntries(INDS.map((v,i)=>[v,['#0d9488','#2563eb','#7c3aed','#d97706','#dc2626','#059669','#0891b2','#9ca3af'][i]]));
+
+// ===== 图表工具 =====
+let chartRegistry = [];
+function mount(id, option){
+  const el = document.getElementById(id);
+  if(!el) return null;
+  const c = echarts.init(el);
+  c.setOption(option);
+  chartRegistry.push(c);
+  return c;
+}
+function clearCharts(){ chartRegistry.forEach(c=>c.dispose()); chartRegistry = []; }
+const AXIS = { axisLine:{lineStyle:{color:'#d7dfe8'}}, axisLabel:{color:'#7c8898', fontSize:11}, splitLine:{lineStyle:{color:'#eef2f6'}} };
+
+function colorOf(dim, v){
+  if(dim==='modality') return MODMAP[v] ? MODMAP[v].c : '#9ca3af';
+  if(dim==='dealType') return DTYPE_COLORS[v] || '#9ca3af';
+  if(dim==='stage') return STAGE_COLORS[v] || '#9ca3af';
+  if(dim==='region') return REGION_COLORS[v] || '#9ca3af';
+  if(dim==='indication') return IND_COLORS[v] || '#9ca3af';
+  return '#9ca3af';
+}
+function dimValues(dim){
+  if(dim==='dealType') return DTYPES;
+  if(dim==='modality') return MODS.map(m=>m.k);
+  if(dim==='indication') return INDS;
+  if(dim==='stage') return STAGES;
+  if(dim==='region') return REGIONS;
+  return [];
+}
+function metricVal(d, metric){
+  if(metric==='count') return 1;
+  if(metric==='upfront') return d.upfront || 0;
+  if(metric==='total') return d.total || 0;
+  return 1;
+}
+const METRIC_LABEL = {count:'交易笔数', upfront:'首付款 ($M)', total:'潜在总额 ($M)'};
+
+function buildTrend(deals, metric, dim){
+  const years = [2021,2022,2023,2024,2025,2026];
+  const cats = dimValues(dim);
+  const series = cats.map(v => ({
+    name: v, type:'line', stack:'total', smooth:true,
+    symbol:'circle', symbolSize:6,
+    areaStyle:{opacity: dim==='modality' ? .55 : .18},
+    lineStyle:{width:2},
+    color: colorOf(dim, v),
+    emphasis:{focus:'series'},
+    data: years.map(y => {
+      const rows = deals.filter(d=>d.year===y && d[dim]===v);
+      return rows.reduce((s,d)=> s + metricVal(d, metric), 0);
+    })
+  }));
+  return {
+    color: cats.map(v=>colorOf(dim,v)),
+    tooltip:{trigger:'axis'},
+    legend:{type:'scroll', bottom:0, icon:'roundRect', itemWidth:10, itemHeight:10, textStyle:{fontSize:11}},
+    grid:{left:8,right:8,top:12,bottom:60,containLabel:true},
+    xAxis:{type:'category', data:years.map(y=>'\''+String(y).slice(2)), ...AXIS},
+    yAxis:{type:'value', ...AXIS, name: METRIC_LABEL[metric]},
+    series
+  };
+}
+
+function sum(a){ return a.reduce((s,d)=>s+d,0); }
+function median(a){ if(!a.length) return 0; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; }
+function quartiles(a){ if(!a.length) return [0,0,0,0,0]; const s=[...a].sort((x,y)=>x-y); const q=p=>{const i=(s.length-1)*p; const lo=Math.floor(i), hi=Math.ceil(i); return s[lo]+(s[hi]-s[lo])*(i-lo);}; return [s[0], q(.25), q(.5), q(.75), s[s.length-1]]; }
+
+function tagHtml(color, text){ return `<span class="tag" style="background:${color}1a;color:${color}">${text}</span>`; }
+function modColor(m){ return MODMAP[m]?MODMAP[m].c:'#9ca3af'; }
+
+// ===== KPI =====
+function kpiHtml(deals){
+  const disclosed = deals.filter(d=>d.disclosed);
+  const totalV = sum(disclosed.map(d=>d.total));
+  const upfrontV = sum(disclosed.map(d=>d.upfront));
+  const highest = disclosed.length ? Math.max(...disclosed.map(d=>d.total)) : 0;
+  const items = [
+    ['交易笔数', fmtInt(deals.length), 'Total Deals'],
+    ['披露总额', fmtM(totalV), 'Total Disclosed Value'],
+    ['最高单笔', fmtM(highest), 'Highest Deal'],
+    ['首付款', fmtM(upfrontV), 'Upfront'],
+    ['中国授权方', fmtInt(new Set(deals.map(d=>d.licensor)).size), 'Licensors'],
+    ['海外对手方', fmtInt(new Set(deals.map(d=>d.licensee)).size), 'Counterparties']
+  ];
+  return `<div class="kpis">${items.map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}</div>`;
+}
+
+// ===== 世界地图（含降级） =====
+const REGION_FLAGS = {'US & Canada':'🇺🇸','Europe':'🇪🇺','APAC':'🌏','Emerging Markets':'🌍','Global':'🌎','Other':'🏳️'};
+function renderWorldMap(elId, deals){
+  const el = document.getElementById(elId);
+  const agg = {};
+  deals.forEach(d=>{ if(!agg[d.region]) agg[d.region]={n:0, v:0}; agg[d.region].n++; if(d.disclosed) agg[d.region].v += d.total; });
+  const order = ['US & Canada','Europe','APAC','Emerging Markets','Global','Other'];
+  const max = Math.max(1, ...Object.values(agg).map(x=>x.n));
+  el.innerHTML = `<div class="footprint">${order.filter(r=>agg[r]).map(r=>{
+    const c = REGION_COLORS[r] || '#9ca3af';
+    const active = state.region.size===1 && state.region.has(r);
+    return `<div class="fp-tile ${active?'active':''}" style="--c:${c}" onclick="state.region=new Set(['${r}']);showToast('已筛选地区：${r}');render();">
+      <div class="fp-flag">${REGION_FLAGS[r]||'🌐'}</div>
+      <div class="fp-name">${r}</div>
+      <div class="fp-n">${agg[r].n} <span style="font-size:12px;color:var(--muted);font-weight:500">笔</span></div>
+      <div class="fp-v">披露总额 ${fmtM(agg[r].v)}</div>
+      <div class="fp-bar"><span style="width:${Math.round(agg[r].n/max*100)}%;background:${c}"></span></div>
+    </div>`;
+  }).join('')}</div>
+  <div class="hint" style="font-size:11px;margin-top:8px">点击地区 → 全局筛选该地区交易；点「重置筛选」可恢复全部。</div>`;
+}
+
+// ===== 通用小组件 =====
+function donut(deals, dim, colorMap, center){
+  const counts = {};
+  deals.forEach(d=>{ counts[d[dim]] = (counts[d[dim]]||0)+1; });
+  return {
+    tooltip:{trigger:'item', formatter:'{b}: {c} ({d}%)'},
+    legend:{type:'scroll', orient:'vertical', right:2, top:'middle', icon:'circle', itemWidth:9, itemHeight:9, textStyle:{fontSize:11}},
+    series:[{type:'pie', radius:['46%','72%'], center: center||['36%','52%'], avoidLabelOverlap:true,
+      data:Object.entries(counts).map(([k,v])=>({name:k, value:v, itemStyle:{color:(colorMap&&colorMap[k])||'#9ca3af'}})),
+      label:{show:false}, emphasis:{scale:true, scaleSize:6}}]
+  };
+}
+function barOption(deals, dim, colorMap){
+  const counts = {};
+  deals.forEach(d=>{ counts[d[dim]] = (counts[d[dim]]||0)+1; });
+  const data = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  return {
+    tooltip:{trigger:'axis'},
+    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:data.map(x=>x[0]), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate: data.length>6?20:0}},
+    yAxis:{type:'value', ...AXIS},
+    series:[{type:'bar', barMaxWidth:34, data:data.map(x=>({value:x[1], itemStyle:{color:(colorMap&&colorMap[x[0]])||'#0d9488', borderRadius:[4,4,0,0]}}))}]
+  };
+}
+function dealTableHtml(deals){
+  if(!deals.length) return '<div style="padding:20px;color:var(--muted)">无匹配交易</div>';
+  const rows = deals.map(d=>`<tr onclick="openDeal('${d.id}')">
+    <td class="num">${d.date}</td>
+    <td>${d.licensor}</td>
+    <td>${d.licensee}</td>
+    <td>${d.asset}</td>
+    <td>${tagHtml(modColor(d.modality), d.modality)}</td>
+    <td>${d.indication}</td>
+    <td>${d.stage}</td>
+    <td>${d.dealType}</td>
+    <td class="num">${fmtM(d.upfront)}</td>
+    <td class="num">${fmtM(d.total)}</td>
+  </tr>`).join('');
+  return `<table class="tbl"><thead><tr><th>日期</th><th>中国授权方</th><th>海外对手方</th><th>资产</th><th>模态</th><th>适应症</th><th>阶段</th><th>交易结构</th><th>首付款</th><th>潜在总额</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function wireSwitch(elId, labels, active, cb){
+  const el = document.getElementById(elId);
+  el.innerHTML = Object.entries(labels).map(([k,l])=>`<button data-v="${k}" class="${k===active?'active':''}">${l}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>cb(b.dataset.v));
+}
+
+// ===== 页面渲染 =====
+const main = document.getElementById('main');
+function title(zh, en){
+  return `<div class="page-title"><h2>${zh}</h2><p>${en}</p></div>`;
+}
+
+let ovMetric = 'count', ovDim = 'modality';
+
+function renderOverview(deals){
+  const recent = deals.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+  main.innerHTML = title('总览 Overview', 'What is happening? — 市场正在发生什么') +
+    kpiHtml(deals) +
+    `<div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <h3>交易活跃度趋势</h3>
+        <div class="metric-switch" id="ov-metric"></div>
+        <div class="dim-switch" id="ov-dim"></div>
+        <div id="ov-trend" class="chart ch-md"></div>
+      </div>
+      <div class="card"><h3>全球足迹 · 中国资产流向</h3><p class="hint">点击国家 → 全局筛选该地区交易</p><div id="ov-map" class="chart ch-md"></div></div>
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card"><h3>交易结构构成</h3><div id="ov-dtype" class="chart ch-md"></div></div>
+      <div class="card"><h3>模态演化（堆叠面积）</h3><div id="ov-mod" class="chart ch-md"></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><h3>最近交易</h3><div id="ov-recent"></div></div>`;
+
+  mount('ov-trend', buildTrend(deals, ovMetric, ovDim));
+  renderWorldMap('ov-map', deals);
+  mount('ov-dtype', donut(deals, 'dealType', DTYPE_COLORS));
+  mount('ov-mod', buildTrend(deals, 'count', 'modality'));
+  document.getElementById('ov-recent').innerHTML = dealTableHtml(recent);
+  wireSwitch('ov-metric', METRIC_LABEL, ovMetric, m=>{ ovMetric=m; render(); });
+  wireSwitch('ov-dim', {modality:'模态', indication:'适应症', stage:'阶段', region:'地区'}, ovDim, d=>{ ovDim=d; render(); });
+}
+
+function renderLandscape(deals){
+  main.innerHTML = title('格局 Landscape', 'What kinds of transactions are happening?') +
+  `<div class="grid g2">
+    <div class="card"><h3>阶段 × 交易结构矩阵</h3><p class="hint">色块/数字 = 交易笔数</p><div id="ls-matrix" class="chart ch-lg"></div></div>
+    <div class="card"><h3>交易结构趋势</h3><p class="hint">按年份堆叠面积</p><div id="ls-dtype" class="chart ch-lg"></div></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3>地区分布（笔数）</h3><div id="ls-region" class="chart ch-md"></div></div>
+    <div class="card"><h3>地区分布（潜在总额）</h3><div id="ls-region-v" class="chart ch-md"></div></div>
+  </div>`;
+
+  // 阶段 × 交易结构 热力矩阵
+  const matData = [];
+  STAGES.forEach((s,si)=> DTYPES.forEach((t,di)=>{
+    const c = deals.filter(d=>d.stage===s && d.dealType===t).length;
+    if(c>0) matData.push([di, si, c]);
+  }));
+  const matMax = Math.max(1, ...matData.map(d=>d[2]));
+  mount('ls-matrix', {
+    tooltip:{formatter:p=>`${DTYPES[p.value[0]]} × ${STAGES[p.value[1]]}<br/>交易：<b>${p.value[2]}</b>`},
+    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:DTYPES, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:24}},
+    yAxis:{type:'category', data:STAGES, ...AXIS},
+    visualMap:{min:0, max:matMax, show:false, inRange:{color:['#e6f4f2','#0d9488']}},
+    series:[{type:'heatmap', data:matData, label:{show:true, color:'#0f1b2d', fontSize:11}}]
+  });
+  mount('ls-dtype', buildTrend(deals, 'count', 'dealType'));
+  mount('ls-region', barOption(deals, 'region', REGION_COLORS));
+  const regionVal = {};
+  deals.forEach(d=>{ if(d.disclosed) regionVal[d.region]=(regionVal[d.region]||0)+d.total; });
+  mount('ls-region-v', {
+    tooltip:{trigger:'axis', valueFormatter:v=>'$'+Math.round(v)+'M'},
+    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:Object.keys(regionVal), ...AXIS},
+    yAxis:{type:'value', ...AXIS},
+    series:[{type:'bar', barMaxWidth:34, data:Object.values(regionVal).map(v=>({value:v, itemStyle:{color:'#0d9488', borderRadius:[4,4,0,0]}}))}]
+  });
+}
+
+const DTYPE_SYMBOL = {'License-out':'circle','Co-development':'diamond','Asset transfer':'triangle','Non-exclusive':'rect','Option':'roundRect','M&A':'pin','JV':'arrow','Other':'rect'};
+
+function renderEconomics(deals){
+  const disclosed = deals.filter(d=>d.disclosed && d.total>0);
+  main.innerHTML = title('金额 Economics', 'How much are these deals worth?') +
+  `<div class="grid g2">
+    <div class="card"><h3>金额分布 · 按模态（箱线图）</h3><p class="hint">25/50/75 分位 + 极值，规避均值误导</p><div id="ec-box" class="chart ch-md"></div></div>
+    <div class="card"><h3>披露状态</h3><p class="hint">未披露金额不计入求和</p><div id="ec-disc" class="chart ch-md"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>交易气泡图</h3><p class="hint">X=阶段，Y=潜在总额（对数），气泡大小=首付款，颜色=模态，形状=交易结构</p><div id="ec-bubble" class="chart ch-lg"></div></div>
+  <div class="card" style="margin-top:14px"><h3>里程碑 Top 10（total − upfront 派生）</h3><div id="ec-milestone"></div></div>`;
+
+  // 箱线图
+  const mods = MODS.map(m=>m.k).filter(m=>disclosed.some(d=>d.modality===m));
+  const boxData = mods.map(m=>{ const a = disclosed.filter(d=>d.modality===m).map(d=>d.total); return quartiles(a); });
+  mount('ec-box', {
+    tooltip:{trigger:'item'},
+    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:mods, ...AXIS},
+    yAxis:{type:'value', ...AXIS, name:'$M'},
+    series:[{type:'boxplot', data:boxData, itemStyle:{color:'#0d9488', borderColor:'#0f766e'}, boxWidth:[12,28]}]
+  });
+  const nDisc = deals.filter(d=>d.disclosed).length, nUnd = deals.length - nDisc;
+  mount('ec-disc', {
+    tooltip:{trigger:'item', formatter:'{b}: {c} ({d}%)'},
+    legend:{bottom:0, textStyle:{fontSize:11}},
+    series:[{type:'pie', radius:['46%','70%'], center:['50%','46%'],
+      data:[{name:'金额已披露', value:nDisc, itemStyle:{color:'#0d9488'}},{name:'未披露/N.A.', value:nUnd, itemStyle:{color:'#d8dee6'}}],
+      label:{formatter:'{b}\n{c}'}, emphasis:{scale:true, scaleSize:6}}]
+  });
+  // 气泡图
+  const bubbleData = disclosed.map(d=>({
+    value:[STAGES.indexOf(d.stage), d.total],
+    name:d.asset,
+    itemStyle:{color: modColor(d.modality)},
+    symbol: DTYPE_SYMBOL[d.dealType]||'circle',
+    symbolSize: 7 + Math.sqrt(d.upfront||1)*1.3,
+    _d:d
+  }));
+  mount('ec-bubble', {
+    tooltip:{formatter:p=>{const d=p.data._d; return `<b>${d.asset}</b><br/>${d.licensor} × ${d.licensee}<br/>模态：${d.modality} · 靶点：${d.target}<br/>适应症：${d.indication} · 阶段：${d.stage}<br/>首付款：${fmtM(d.upfront)} · 潜在总额：${fmtM(d.total)}`;}},
+    legend:{top:0, data:mods, icon:'circle', textStyle:{fontSize:11}, itemWidth:9, itemHeight:9},
+    grid:{left:8,right:8,top:28,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:STAGES, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    yAxis:{type:'log', ...AXIS, name:'$M'},
+    series:[{type:'scatter', data:bubbleData}]
+  });
+  // 里程碑 top
+  const topM = disclosed.filter(d=>d.milestone>0).sort((a,b)=>b.milestone-a.milestone).slice(0,10);
+  document.getElementById('ec-milestone').innerHTML = `<table class="tbl"><thead><tr><th>资产</th><th>中国授权方</th><th>海外对手方</th><th>首付款</th><th>潜在总额</th><th>里程碑（派生）</th></tr></thead><tbody>
+    ${topM.map(d=>`<tr onclick="openDeal('${d.id}')"><td>${d.asset}</td><td>${d.licensor}</td><td>${d.licensee}</td><td class="num">${fmtM(d.upfront)}</td><td class="num">${fmtM(d.total)}</td><td class="num" style="color:#0f766e;font-weight:600">${fmtM(d.milestone)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+function renderPipeline(deals){
+  main.innerHTML = title('技术与管线 Pipeline', 'What technologies and stages are attracting interest?') +
+  `<div class="grid g2">
+    <div class="card"><h3>模态演化（堆叠面积）</h3><p class="hint">2021: mAb/小分子主导 → 2025+: ADC/双抗放量</p><div id="pl-mod" class="chart ch-lg"></div></div>
+    <div class="card"><h3>研发阶段分布</h3><div id="pl-stage" class="chart ch-lg"></div></div>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3>靶点 Top 榜（笔数）</h3><div id="pl-target" class="chart ch-md"></div></div>
+    <div class="card"><h3>模态 × 阶段（气泡 = 笔数）</h3><div id="pl-ms" class="chart ch-md"></div></div>
+  </div>`;
+  mount('pl-mod', buildTrend(deals, 'count', 'modality'));
+  mount('pl-stage', barOption(deals, 'stage', STAGE_COLORS));
+  // 靶点
+  const tgt={}; deals.forEach(d=>tgt[d.target]=(tgt[d.target]||0)+1);
+  const tdata=Object.entries(tgt).sort((a,b)=>b[1]-a[1]);
+  mount('pl-target', {
+    tooltip:{trigger:'axis'},
+    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
+    xAxis:{type:'value', ...AXIS}, yAxis:{type:'category', data:tdata.map(x=>x[0]).reverse(), ...AXIS},
+    series:[{type:'bar', barMaxWidth:18, data:tdata.map(x=>({value:x[1], itemStyle:{color:'#2563eb', borderRadius:[0,4,4,0]}})).reverse()}]
+  });
+  // 模态 × 阶段
+  const ms=[]; MODS.forEach((m,xi)=>STAGES.forEach((s,yi)=>{ const n=deals.filter(d=>d.modality===m.k&&d.stage===s).length; if(n>0) ms.push({value:[xi, STAGES.length-1-yi, n], n, modality:m.k, stage:s, itemStyle:{color:m.c}}); }));
+  mount('pl-ms', {
+    tooltip:{formatter:p=>`${p.data.modality} × ${p.data.stage}<br/>交易：<b>${p.data.n}</b>`},
+    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:MODS.map(m=>m.k), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:22}},
+    yAxis:{type:'category', data:STAGES.slice().reverse(), ...AXIS},
+    series:[{type:'scatter', data:ms, symbolSize:function(v,p){return 8+Math.sqrt(p.data.n)*6;}}]
+  });
+}
+
+function renderTherapy(deals){
+  main.innerHTML = title('治疗领域 Therapy', 'Where is the activity concentrated?') +
+  `<div class="grid g2">
+    <div class="card"><h3>适应症排行（笔数）</h3><div id="th-rank" class="chart ch-md"></div></div>
+    <div class="card"><h3>适应症 × 模态（气泡 = 笔数）</h3><div id="th-im" class="chart ch-md"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>适应症 × 阶段（热力 = 笔数）</h3><div id="th-is" class="chart ch-md"></div></div>`;
+  mount('th-rank', barOption(deals, 'indication', IND_COLORS));
+  // 适应症 × 模态
+  const im=[]; INDS.forEach((ind,xi)=>MODS.forEach((m,yi)=>{ const n=deals.filter(d=>d.indication===ind&&d.modality===m.k).length; if(n>0) im.push({value:[xi, MODS.length-1-yi, n], n, indication:ind, modality:m.k, itemStyle:{color:m.c}}); }));
+  mount('th-im', {
+    tooltip:{formatter:p=>`${p.data.indication} × ${p.data.modality}<br/>交易：<b>${p.data.n}</b>`},
+    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:INDS, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    yAxis:{type:'category', data:MODS.map(m=>m.k).reverse(), ...AXIS},
+    series:[{type:'scatter', data:im, symbolSize:function(v,p){return 8+Math.sqrt(p.data.n)*7;}}]
+  });
+  // 适应症 × 阶段 热力
+  const isd=[]; INDS.forEach((ind,xi)=>STAGES.forEach((s,yi)=>{ const n=deals.filter(d=>d.indication===ind&&d.stage===s).length; if(n>0) isd.push([xi, yi, n]); }));
+  mount('th-is', {
+    tooltip:{formatter:p=>`${INDS[p.value[0]]} × ${STAGES[p.value[1]]}<br/>交易：<b>${p.value[2]}</b>`},
+    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:INDS, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    yAxis:{type:'category', data:STAGES, ...AXIS},
+    visualMap:{min:0, max:Math.max(1,...isd.map(d=>d[2])), show:false, inRange:{color:['#e6f4f2','#0d9488']}},
+    series:[{type:'heatmap', data:isd, label:{show:true, color:'#0f1b2d', fontSize:10}}]
+  });
+}
+
+let coSort = 'deals', coSort2 = 'deals';
+const SORT_LABELS = {deals:'交易笔数', total:'披露总额', median:'中位数金额', mods:'模态数量', inds:'适应症数量'};
+
+function companyStats(deals, key){
+  const map = new Map();
+  deals.forEach(d=>{
+    const name = d[key];
+    if(!map.has(name)) map.set(name,{name, deals:0, total:0, vals:[], mods:new Set(), inds:new Set()});
+    const c = map.get(name);
+    c.deals++; c.mods.add(d.modality); c.inds.add(d.indication);
+    if(d.disclosed){ c.total += d.total; c.vals.push(d.total); }
+  });
+  return [...map.values()].map(c=>({name:c.name, deals:c.deals, total:round2(c.total), median:round2(median(c.vals)), mods:c.mods.size, inds:c.inds.size}));
+}
+function sortCompanies(arr, sort){
+  const key = sort==='median' ? 'median' : sort==='total' ? 'total' : sort==='mods' ? 'mods' : sort==='inds' ? 'inds' : 'deals';
+  return arr.slice().sort((a,b)=>b[key]-a[key]);
+}
+function leaderTableHtml(rows, cols, sort){
+  return `<select class="dd-btn" onchange="coSort2=this.value;render();" data-side="cn">
+    ${Object.entries(SORT_LABELS).map(([k,l])=>`<option value="${k}" ${sort===k?'selected':''}>排序：${l}</option>`).join('')}
+  </select>
+  <table class="tbl"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>
+  ${rows.slice(0,12).map(r=>`<tr><td>${r.name}</td><td class="num">${r.deals}</td><td class="num">${fmtM(r.total)}</td><td class="num">${fmtM(r.median)}</td><td class="num">${r.mods}</td><td class="num">${r.inds}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+function renderCompanies(deals){
+  const cn = companyStats(deals, 'licensor');
+  const os = companyStats(deals, 'licensee');
+  const cnSorted = sortCompanies(cn, coSort);
+  const osSorted = sortCompanies(os, coSort2);
+  main.innerHTML = title('公司 Companies', 'Who is doing the deals?') +
+  `<div class="leader">
+    <div class="side card"><h3>中国授权方</h3><p class="hint">不做武断排名，可按多指标切换排序</p><div id="co-cn"></div></div>
+    <div class="side card"><h3>海外对手方</h3><p class="hint">与中国交易的海外公司</p><div id="co-os"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3>公司 × 模态（气泡 = 笔数）</h3><p class="hint">Top 中国授权方，点击表行可查看公司档案</p><div id="co-bubble" class="chart ch-lg"></div></div>`;
+  document.getElementById('co-cn').innerHTML = leaderTableHtml(cnSorted, ['公司','交易','披露总额','中位数','模态','适应症'], coSort);
+  document.getElementById('co-os').innerHTML = leaderTableHtml(osSorted, ['公司','交易','披露总额','中位数','模态','适应症'], coSort2);
+  // 修正两个 select 的 onchange（避免与 id 冲突）
+  document.querySelectorAll('#co-cn select, #co-os select').forEach(sel=>{
+    const side = sel.closest('.side').querySelector('h3').textContent.includes('中国') ? 'cn':'os';
+    sel.onchange = ()=>{ if(side==='cn') coSort=sel.value; else coSort2=sel.value; render(); };
+  });
+  // 公司 × 模态
+  const top = cnSorted.slice(0,12);
+  const xd = MODS.map(m=>m.k);
+  const bub=[];
+  top.forEach((c,yi)=> MODS.forEach((m,xi)=>{ const n=deals.filter(d=>d.licensor===c.name && d.modality===m.k).length; if(n>0) bub.push({value:[xi, top.length-1-yi], n, company:c.name, modality:m.k, itemStyle:{color:m.c}}); }));
+  mount('co-bubble', {
+    tooltip:{formatter:p=>`${p.data.company}<br/>${p.data.modality}：<b>${p.data.n}</b> 笔`},
+    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:xd, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    yAxis:{type:'category', data:top.map(c=>c.name).reverse(), ...AXIS, axisLabel:{fontSize:11}},
+    series:[{type:'scatter', data:bub, symbolSize:function(v,p){return 8+Math.sqrt(p.data.n)*7;}}]
+  });
+}
+
+function renderExplorer(deals){
+  main.innerHTML = title('交易检索 Explorer', 'What exactly happened in each deal?') +
+  `<div class="card">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+      <input id="ex-search" class="dd-btn" style="flex:1;padding:9px 12px" placeholder="搜索公司 / 资产 / 靶点 / 适应症…" value="${state.search.replace(/"/g,'&quot;')}">
+      <span id="ex-count" style="color:var(--muted);white-space:nowrap">共 ${deals.length} 笔</span>
+    </div>
+    <div id="ex-table">${dealTableHtml(deals.slice(0,150))}</div>
+  </div>`;
+  const input = document.getElementById('ex-search');
+  input.oninput = e=>{
+    state.search = e.target.value;
+    const d = filtered();
+    document.getElementById('ex-count').textContent = '共 ' + d.length + ' 笔';
+    document.getElementById('ex-table').innerHTML = dealTableHtml(d.slice(0,150));
+  };
+}
+
+function renderNetwork(deals){
+  const nm = new Map(), em = new Map();
+  deals.forEach(d=>{
+    [['cn', d.licensor], ['os', d.licensee]].forEach(([side,name])=>{
+      if(!nm.has(name)) nm.set(name,{name, cn: side==='cn', cnt:0});
+      nm.get(name).cnt++;
+    });
+    const key = d.licensor + '|' + d.licensee;
+    if(!em.has(key)) em.set(key,{s:d.licensor, t:d.licensee, v:0});
+    em.get(key).v++;
+  });
+  const nodes=[...nm.values()].map(n=>({id:n.name, name:n.name, category:n.cn?0:1, symbolSize:12+Math.sqrt(n.cnt)*5, itemStyle:{color:n.cn?'#0d9488':'#2563eb'}}));
+  const edges=[...em.values()].map(e=>({source:e.s, target:e.t, value:e.v, lineStyle:{width:Math.min(1+e.v,8), color:'#c7d2dc', curveness:0.12}}));
+  main.innerHTML = title('网络 Network', 'Who partners with whom?') +
+  `<div class="card"><h3>交易生态网络</h3><p class="hint">节点=公司（<span style="color:#0d9488">● 中国</span> / <span style="color:#2563eb">● 海外</span>），大小=交易笔数，连线=交易；可拖拽/缩放，点击节点查看公司档案</p><div id="nw" class="chart" style="height:560px"></div></div>`;
+  const c = mount('nw', {
+    tooltip:{formatter:p=> p.dataType==='edge' ? `${p.data.source} ↔ ${p.data.target}<br/>交易：<b>${p.data.value}</b>` : `${p.name}<br/>交易：<b>${nm.get(p.name).cnt}</b>`},
+    legend:[{data:['中国公司','海外公司'], bottom:8, textStyle:{fontSize:11}}],
+    series:[{type:'graph', layout:'force', roam:true, draggable:true, force:{repulsion:260, edgeLength:110, gravity:0.08}, categories:[{name:'中国公司'},{name:'海外公司'}], label:{show:true, fontSize:10, color:'#0f1b2d'}, data:nodes, edges:edges, emphasis:{focus:'adjacency', lineStyle:{width:6}}}]
+  });
+  c.on('click', p=>{ if(p.dataType==='node') openCompany(p.name); });
+}
+
+// ===== 弹窗 =====
+function openDeal(id){
+  const d = DEALS.find(x=>x.id===id); if(!d) return;
+  document.getElementById('modal').innerHTML = `
+    <button class="x" onclick="closeDeal()">✕</button>
+    <div class="deal-head"><b>${d.licensor}</b><span class="vs">×</span><b>${d.licensee}</b></div>
+    <div class="fact">
+      <div><span class="k">资产 Asset</span>${d.asset}</div>
+      <div><span class="k">靶点 Target</span>${d.target}</div>
+      <div><span class="k">模态 Modality</span>${tagHtml(modColor(d.modality), d.modality)}</div>
+      <div><span class="k">适应症 Indication</span>${d.indication}</div>
+      <div><span class="k">阶段 Stage</span>${d.stage}</div>
+      <div><span class="k">交易结构 Deal type</span>${d.dealType}</div>
+      <div><span class="k">地区 Region</span>${d.region}（${d.country}）</div>
+      <div><span class="k">日期 Date</span>${d.date}</div>
+      <div><span class="k">首付款 Upfront</span>${fmtM(d.upfront)}</div>
+      <div><span class="k">潜在总额 Total</span>${fmtM(d.total)}</div>
+      <div><span class="k">里程碑（派生）</span>${fmtM(d.milestone)}</div>
+      <div><span class="k">置信度 Confidence</span>${d.confidence}</div>
+    </div>
+    <div class="note">分析师备注（模拟）：该笔交易经 AI 采集与清洗，金额按 CSV 口径归一化为 M USD；里程碑 = 潜在总额 − 首付款（两端披露时派生）。</div>
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="dd-btn" onclick="state.page='explorer';state.search='${d.asset}';render();closeDeal();">在交易检索中查看</button>
+      <button class="dd-btn" style="background:var(--accent);color:#fff;border-color:var(--accent)" onclick="closeDeal()">关闭</button>
+    </div>`;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeDeal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+
+function openCompany(name){
+  const all = DEALS;
+  const lic = companyStats(all,'licensor').find(c=>c.name===name);
+  const os = companyStats(all,'licensee').find(c=>c.name===name);
+  const c = lic || os; if(!c) return;
+  const isCn = !!lic;
+  const rows = all.filter(d=>d.licensor===name || d.licensee===name).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('modal').innerHTML = `
+    <button class="x" onclick="closeDeal()">✕</button>
+    <div class="deal-head"><b>${name}</b><span class="vs">${isCn?'中国授权方':'海外对手方'}</span></div>
+    <div class="fact">
+      <div><span class="k">交易笔数</span>${c.deals}</div>
+      <div><span class="k">披露总额</span>${fmtM(c.total)}</div>
+      <div><span class="k">中位数金额</span>${fmtM(c.median)}</div>
+      <div><span class="k">模态数量</span>${c.mods}</div>
+      <div><span class="k">适应症数量</span>${c.inds}</div>
+      <div><span class="k">最近交易</span>${rows[0] ? rows[0].date : '—'}</div>
+    </div>
+    <div class="note">最近交易（点击查看详情）：</div>
+    <table class="tbl" style="margin-top:8px"><tbody>
+      ${rows.slice(0,5).map(r=>`<tr onclick="openDeal('${r.id}')"><td class="num">${r.date}</td><td>${r.asset}</td><td>${tagHtml(modColor(r.modality), r.modality)}</td><td>${r.indication}</td><td class="num">${fmtM(r.total)}</td></tr>`).join('')}
+    </tbody></table>
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="dd-btn" onclick="state.page='explorer';state.search='${name}';render();closeDeal();">在交易检索中查看</button>
+      <button class="dd-btn" style="background:var(--accent);color:#fff;border-color:var(--accent)" onclick="closeDeal()">关闭</button>
+    </div>`;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+// ===== 导航 / 过滤 / 渲染 =====
+function renderMain(){
+  clearCharts();
+  const deals = filtered();
+  const pages = {overview:renderOverview, landscape:renderLandscape, economics:renderEconomics, pipeline:renderPipeline, therapy:renderTherapy, companies:renderCompanies, explorer:renderExplorer, network:renderNetwork};
+  (pages[state.page]||renderOverview)(deals);
+}
+function syncNav(){
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.page===state.page));
+}
+function syncFilterbar(){
+  document.querySelectorAll('[data-dd]').forEach(btn=>{
+    const k=btn.dataset.dd; const def=FILTER_DEFS.find(f=>f.key===k);
+    const n = state[k].size===def.values.length?'全部':state[k].size+' 项';
+    btn.innerHTML = `${def.label} <span class="n">${n}</span> ▾`;
+  });
+  document.querySelectorAll('[data-fk]').forEach(cb=>{
+    const k=cb.dataset.fk, v=cb.dataset.fv; cb.checked = state[k].has(v);
+  });
+  document.getElementById('fy0').value = state.years[0];
+  document.getElementById('fy1').value = state.years[1];
+}
+function render(){ buildNav(); buildFilterbar(); renderMain(); }
+function refresh(){ syncNav(); syncFilterbar(); renderMain(); }
+
+function buildNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = NAV.map(([k,l])=>`<button data-page="${k}" class="${state.page===k?'active':''}">${l}</button>`).join('');
+  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{ state.page=b.dataset.page; refresh(); });
+}
+function buildFilterbar(){
+  const years = [2021,2022,2023,2024,2025,2026];
+  let html = `<div class="fgroup"><label>年份</label>
+    <select class="dd-btn" id="fy0">${years.map(y=>`<option ${y===state.years[0]?'selected':''}>${y}</option>`).join('')}</select>
+    <span style="color:var(--muted)">—</span>
+    <select class="dd-btn" id="fy1">${years.map(y=>`<option ${y===state.years[1]?'selected':''}>${y}</option>`).join('')}</select>
+  </div>`;
+  for(const f of FILTER_DEFS){
+    const n = state[f.key].size===f.values.length?'全部':state[f.key].size+' 项';
+    html += `<div class="fgroup"><label>${f.label}</label>
+      <button class="dd-btn" data-dd="${f.key}">${f.label} <span class="n">${n}</span> ▾</button>
+      <div class="dd-menu" data-menu="${f.key}">
+        ${f.values.map(v=>`<label><input type="checkbox" data-fk="${f.key}" data-fv="${v}" ${state[f.key].has(v)?'checked':''}> <span class="dot" style="background:${f.color(v)}"></span>${v}</label>`).join('')}
+      </div></div>`;
+  }
+  html += `<button class="f-reset" id="freset">重置筛选</button>`;
+  const bar = document.getElementById('filterbar');
+  bar.innerHTML = html;
+
+  bar.querySelectorAll('[data-dd]').forEach(btn=>btn.onclick=e=>{
+    e.stopPropagation();
+    const menu = bar.querySelector(`[data-menu="${btn.dataset.dd}"]`);
+    const wasOpen = menu.classList.contains('open');
+    bar.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('open'));
+    if(!wasOpen) menu.classList.add('open');
+  });
+  bar.querySelectorAll('[data-menu]').forEach(m=>m.addEventListener('click', e=>e.stopPropagation()));
+  bar.querySelectorAll('[data-fk]').forEach(cb=>cb.onchange=()=>{
+    const k=cb.dataset.fk, v=cb.dataset.fv;
+    if(cb.checked) state[k].add(v); else state[k].delete(v);
+    refresh();
+  });
+  document.getElementById('fy0').onchange = e=>{ state.years[0]=+e.target.value; if(state.years[0]>state.years[1]) state.years[1]=state.years[0]; refresh(); };
+  document.getElementById('fy1').onchange = e=>{ state.years[1]=+e.target.value; if(state.years[1]<state.years[0]) state.years[0]=state.years[1]; refresh(); };
+  document.getElementById('freset').onclick = ()=>{ resetFilters(); render(); };
+}
+function resetFilters(){
+  state.years=[2021,2026];
+  state.dealType=new Set(DTYPES); state.modality=new Set(MODS.map(m=>m.k));
+  state.indication=new Set(INDS); state.stage=new Set(STAGES); state.region=new Set(REGIONS);
+  state.search='';
+}
+document.addEventListener('click', ()=>{ document.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('open')); });
+document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeDeal(); });
+
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(showToast._t); showToast._t=setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+// ===== 启动 =====
+try{ if(typeof worldJson!=='undefined') echarts.registerMap('world', worldJson); }catch(e){}
+render();
+</script>
+</body>
+</html>
