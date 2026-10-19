@@ -28,16 +28,16 @@
     font-size: 14px; -webkit-font-smoothing: antialiased;
   }
   .topbar { position: sticky; top: 0; z-index: 40; background: rgba(13,19,34,.92); backdrop-filter: saturate(150%) blur(8px); border-bottom: 1px solid var(--line); }
-  .topbar-inner { max-width: 1480px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .topbar-inner { max-width: 1480px; margin: 0 auto; padding: 12px 24px 10px; display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
   .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .brand .logo { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 10px; background: linear-gradient(135deg, var(--accent), #0891b2); color: #06211d; display: grid; place-items: center; font-weight: 800; font-size: 16px; }
   .brand h1 { font-size: 16px; margin: 0; letter-spacing: .2px; white-space: nowrap; }
   .brand p { margin: 2px 0 0; font-size: 11px; color: var(--muted); white-space: nowrap; }
-  .nav { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
-  .nav button { border: 0; background: transparent; color: var(--ink-2); padding: 8px 11px; border-radius: 9px; cursor: pointer; font-size: 12.5px; white-space: nowrap; }
+  .nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-start; }
+  .nav button { border: 0; background: transparent; color: var(--ink-2); padding: 8px 12px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 700; white-space: nowrap; }
   .nav button:hover { background: #16233b; color: var(--ink); }
   .nav button.active { background: var(--accent); color: #06211d; font-weight: 700; }
-  .filterbar { position: sticky; top: 61px; z-index: 30; background: #0f172a; border-bottom: 1px solid var(--line); }
+  .filterbar { position: relative; z-index: 30; background: #0f172a; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   .filterbar-inner { max-width: 1480px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .fgroup { display: flex; align-items: center; gap: 6px; position: relative; }
   .fgroup > label { font-size: 12px; color: var(--muted); white-space: nowrap; }
@@ -141,9 +141,8 @@
       </div>
       <nav class="nav" id="nav"></nav>
     </div>
+    <div class="filterbar"><div class="filterbar-inner" id="filterbar"></div></div>
   </header>
-
-  <div class="filterbar"><div class="filterbar-inner" id="filterbar"></div></div>
 
   <main id="main"></main>
 
@@ -263,16 +262,16 @@ const NAV = [
   ['pipeline','技术与管线 Modality & Pipeline'], ['therapy','治疗领域 Therapeutic Areas'], ['companies','交易参与方 Companies'],
   ['explorer','交易数据库 Transaction Explorer']
 ];
-const PAGE_EN = {overview:'Market Overview — 市场近期表现、关键事件、核心指标与重要信号', landscape:'Deal Landscape — 交易类型、方向、地区、阶段及结构分布', economics:'Deal Economics — 首付款、里程碑、总额、披露率及金额分布', pipeline:'Modality & Pipeline — 药物形式、机制、靶点、阶段与技术热度', therapy:'Therapeutic Areas — 各领域的交易活跃度与趋势', companies:'Companies — 买方、卖方、授权方与被授权方及生态网络', explorer:'Transaction Explorer — 按条件检索单笔交易'};
+const PAGE_EN = {overview:'Market Overview — Market performance, key events, core metrics and signals', landscape:'Deal Landscape — Deal type, direction, geography, stage and structure distribution', economics:'Deal Economics — Upfront, milestones, total value, disclosure rate and value distribution', pipeline:'Modality & Pipeline — Drug modality, mechanism, target, stage and technology momentum', therapy:'Therapeutic Areas — Deal activity and trends by disease area', companies:'Companies — Buyers, sellers, licensors, licensees and their deal records & ecosystem network', explorer:'Transaction Explorer — Search individual deals by company, asset, target, date and deal type'};
 const DIM_SEG = {overview:'市场分析', landscape:'市场分析', economics:'市场分析', pipeline:'交易内容分析', therapy:'交易内容分析', companies:'交易内容分析', explorer:'数据检索'};
 
 // ===== 过滤器栏 =====
 const FILTER_DEFS = [
-  {key:'dealType', label:'交易类型', color:k=>DTYPE_COLORS[k], values:DTYPES},
-  {key:'modality', label:'药物形式', color:k=>MODMAP[k]?MODMAP[k].c:'#94a3b8', values:MODS.map(m=>m.k)},
-  {key:'indication', label:'治疗领域', color:k=>IND_COLORS[k], values:INDS},
-  {key:'stage', label:'研发阶段', color:k=>STAGE_COLORS[k], values:STAGES},
-  {key:'region', label:'授权区域', color:k=>REGION_COLORS[k], values:REGIONS}
+  {key:'dealType', label:'Deal Type', color:k=>DTYPE_COLORS[k], values:DTYPES},
+  {key:'modality', label:'Modality', color:k=>MODMAP[k]?MODMAP[k].c:'#94a3b8', values:MODS.map(m=>m.k)},
+  {key:'indication', label:'Therapeutic Area', color:k=>IND_COLORS[k], values:INDS},
+  {key:'stage', label:'Asset Stage', color:k=>STAGE_COLORS[k], values:STAGES},
+  {key:'region', label:'Region', color:k=>REGION_COLORS[k], values:REGIONS}
 ];
 
 function buildNav(){
@@ -280,17 +279,17 @@ function buildNav(){
 }
 function buildFilterbar(){
   const years=[2019,2020,2021,2022,2023,2024,2025,2026];
-  let html = `<div class="fgroup"><label>年份</label>
+  let html = `<div class="fgroup"><label>Year</label>
     <select class="dd-btn" id="fy0">${years.map(y=>`<option ${y===state.years[0]?'selected':''}>${y}</option>`).join('')}</select>
     <span style="color:var(--muted)">—</span>
     <select class="dd-btn" id="fy1">${years.map(y=>`<option ${y===state.years[1]?'selected':''}>${y}</option>`).join('')}</select></div>`;
   for(const f of FILTER_DEFS){
-    const n = state[f.key].size===f.values.length?'全部':state[f.key].size+' 项';
+    const n = state[f.key].size===f.values.length?'All':state[f.key].size+' selected';
     html += `<div class="fgroup"><label>${f.label}</label>
       <button class="dd-btn" data-dd="${f.key}">${f.label} <span class="n">${n}</span> ▾</button>
-      <div class="dd-menu" data-menu="${f.key}">${f.values.map(v=>`<label><input type="checkbox" data-fk="${f.key}" data-fv="${v}" ${state[f.key].has(v)?'checked':''}> <span class="dot" style="background:${f.color(v)}"></span>${labelOf(f.key,v)}</label>`).join('')}</div></div>`;
+      <div class="dd-menu" data-menu="${f.key}">${f.values.map(v=>`<label><input type="checkbox" data-fk="${f.key}" data-fv="${v}" ${state[f.key].has(v)?'checked':''}> <span class="dot" style="background:${f.color(v)}"></span>${v}</label>`).join('')}</div></div>`;
   }
-  html += `<button class="f-reset" id="freset">重置筛选</button>`;
+  html += `<button class="f-reset" id="freset">Reset</button>`;
   document.getElementById('filterbar').innerHTML = html;
 }
 function syncFilterbar(){
@@ -377,7 +376,7 @@ function renderWorldMap(elId, deals){
   const agg = {};
   deals.forEach(d=>{ if(!agg[d.country]) agg[d.country]={n:0, v:0}; agg[d.country].n++; if(d.disclosed) agg[d.country].v+=d.total; });
   const max = Math.max(1, ...Object.values(agg).map(x=>x.n));
-  const entries = Object.entries(agg).sort((a,b)=>b[1].n-a[1].n);
+  const entries = Object.entries(agg).sort((a,b)=>b[1].n-a[1].n).slice(0,8);
   el.innerHTML = `<div class="footprint">${entries.map(([ct,a])=>{
     const r = COUNTRY_REGION[ct]||'Other'; const c = REGION_COLORS[r]||'#94a3b8';
     const active = state.region.size===1 && state.region.has(r);
@@ -390,7 +389,7 @@ function renderWorldMap(elId, deals){
       <div class="fp-bar"><span style="width:${Math.round(a.n/max*100)}%;background:${c}"></span></div>
     </div>`;
   }).join('')}</div>
-  <div class="hint" style="font-size:11px;margin-top:8px">地图按授权区域（territory）国家粒度展示；点击后以上层区域（region）全局筛选。点「重置筛选」可恢复全部。</div>`;
+  <div class="hint" style="font-size:11px;margin-top:8px">Map shows deal destinations by territory (country). Click a country to filter by region. Use Reset to clear all filters.</div>`;
 }
 
 // ===== 通用小组件 =====
@@ -476,13 +475,13 @@ function keyInsight(deals, dim){
 
 function renderLandscape(deals){
   const dims = [
-    {key:'stage', t:'01 · By Asset Stage', q:'交易标的处于哪个研发阶段？反映风险偏好与资产成熟度。', color:STAGE_COLORS},
-    {key:'modality', t:'02 · By Modality', q:'哪些药物形式获得更多交易关注与首付款？', color:Object.fromEntries(MODS.map(m=>[m.k,m.c]))},
-    {key:'indication', t:'03 · By Disease Area', q:'交易活动集中在哪些疾病领域？', color:IND_COLORS},
-    {key:'dealType', t:'04 · By Deal Type', q:'都在发生哪类交易？', color:DTYPE_COLORS}
+    {key:'stage', t:'By Asset Stage', q:'Which development stage are the deal assets in? Reflects risk appetite and asset maturity.', color:STAGE_COLORS},
+    {key:'modality', t:'By Modality', q:'Which drug modalities attract more deal attention and upfront payments?', color:Object.fromEntries(MODS.map(m=>[m.k,m.c]))},
+    {key:'indication', t:'By Disease Area', q:'Where is deal activity concentrated by disease area?', color:IND_COLORS},
+    {key:'dealType', t:'By Deal Type', q:'What kinds of deals are happening?', color:DTYPE_COLORS}
   ];
   main.innerHTML = title('交易格局 Deal Landscape', PAGE_EN.landscape) +
-    `<div class="card" style="margin-bottom:14px"><p class="hint" style="margin:0">核心问题：<b>跨境创新药交易主要集中在哪里？市场在交易数量和资金投入上分别呈现什么结构？</b> 在选定年份下，从研发阶段、药物形式、治疗领域、交易类型四个维度分析数量分布与首付款分布。</p></div>` +
+    `<div class="card" style="margin-bottom:14px"><p class="hint" style="margin:0">核心问题：<b>在选定年份下，从研发阶段、药物形式、治疗领域、交易类型四个维度分析数量分布与首付款分布。</b></p></div>` +
     `<div class="grid g2">${dims.map((d,i)=>`
       <div class="card"><h3>${d.t}</h3><p class="hint">${d.q}</p>
         <div class="duo">
@@ -526,16 +525,16 @@ function renderEconomics(deals){
   </div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>02 · Deal Value Distribution</h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）</p><div id="ec-box" class="chart ch-md"></div></div>
-    <div class="card"><h3>04 · Value Disclosure</h3><p class="hint">披露率反映金额是否可知，而非金额是否大于 0</p><div id="ec-disc" class="chart ch-md"></div></div>
+    <div class="card"><h3>Deal Value Distribution</h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）</p><div id="ec-box" class="chart ch-md"></div></div>
+    <div class="card"><h3>Value Disclosure</h3><p class="hint">披露率反映金额是否可知，而非金额是否大于 0</p><div id="ec-disc" class="chart ch-md"></div></div>
   </div>
 
-  <div class="card" style="margin-top:14px"><h3>03 · Deal Economics Explorer — Transaction-level Economics</h3>
+  <div class="card" style="margin-top:14px"><h3>Deal Economics Explorer — Transaction-level Economics</h3>
     <p class="hint">Explore how deal economics vary by asset stage, modality and deal structure.<br/>Each bubble represents one deal. The vertical position shows total potential value on a logarithmic scale; bubble area represents upfront payment. Color indicates modality, while shape indicates deal type. Undisclosed values are distinguished from zero values.</p>
     <div class="size-legend"><span style="color:var(--ink-2)">气泡面积 = 首付款：</span><span><i style="width:10px;height:10px"></i>$10M</span><span><i style="width:17px;height:17px"></i>$50M</span><span><i style="width:32px;height:32px"></i>$200M</span><span style="margin-left:auto">仅含已披露交易，点击气泡查看详情</span></div>
     <div id="ec-bubble" class="chart ch-lg"></div></div>
 
-  <div class="card" style="margin-top:14px"><h3>05 · Milestone Analysis — Largest Disclosed Milestone Packages</h3>
+  <div class="card" style="margin-top:14px"><h3>Milestone Analysis — Largest Disclosed Milestone Packages</h3>
     <p class="hint">仅当首付款与潜在总额对价范围一致、可拆分时按 total − upfront 派生；含股权/分成等无法拆分的交易标记为 Not Derivable。</p>
     <div id="ec-milestone"></div></div>`;
 
@@ -583,12 +582,12 @@ function renderEconomics(deals){
 function renderPipeline(deals){
   main.innerHTML = title('技术与管线 Modality & Pipeline', PAGE_EN.pipeline) +
   `<div class="grid g2">
-    <div class="card"><h3>a · Technology Trends 技术趋势</h3><p class="hint">ADC、双抗、细胞与基因疗法、小分子等药物形式的年度交易活跃度变化</p><div id="pl-mod" class="chart ch-lg"></div></div>
-    <div class="card"><h3>b · Target & Mechanism 靶点与机制</h3><p class="hint">热门靶点排名 + 靶点 × 药物形式热度矩阵</p>
+    <div class="card"><h3>Technology Trends 技术趋势</h3><p class="hint">ADC、双抗、细胞与基因疗法、小分子等药物形式的年度交易活跃度变化</p><div id="pl-mod" class="chart ch-lg"></div></div>
+    <div class="card"><h3>Target & Mechanism 靶点与机制</h3><p class="hint">热门靶点排名 + 靶点 × 药物形式热度矩阵</p>
       <div id="pl-target" class="chart" style="height:190px"></div>
       <div id="pl-tm" class="chart" style="height:150px"></div></div>
   </div>
-  <div class="card" style="margin-top:14px"><h3>c · Asset Pipeline 资产管线</h3>
+  <div class="card" style="margin-top:14px"><h3>Asset Pipeline 资产管线</h3>
     <p class="hint">代表性资产的研发阶段、临床进展与交易事件。注意：交易数量 ≠ 临床成功率，不能仅凭交易量增加得出研发成功率更高的结论。</p>
     <div id="pl-assets"></div></div>`;
 
@@ -629,10 +628,10 @@ const AREA_HOTSPOTS = {Oncology:['肺癌 NSCLC','乳腺癌 Breast','卵巢癌 Ov
 function renderTherapy(deals){
   main.innerHTML = title('治疗领域 Therapeutic Areas', PAGE_EN.therapy) +
   `<div class="grid g2">
-    <div class="card"><h3>a · Area Trends 领域趋势</h3><p class="hint">各治疗领域的年度交易数量变化</p><div id="th-trend" class="chart ch-lg"></div></div>
-    <div class="card"><h3>b · Indication Hotspots 适应症热点</h3><p class="hint">各领域内热门具体适应症</p><div id="th-hot"></div></div>
+    <div class="card"><h3>Area Trends 领域趋势</h3><p class="hint">各治疗领域的年度交易数量变化</p><div id="th-trend" class="chart ch-lg"></div></div>
+    <div class="card"><h3>Indication Hotspots 适应症热点</h3><p class="hint">各领域内热门具体适应症</p><div id="th-hot"></div></div>
   </div>
-  <div class="card" style="margin-top:14px"><h3>c · Area Deep Dive 领域深入分析</h3>
+  <div class="card" style="margin-top:14px"><h3>Area Deep Dive 领域深入分析</h3>
     <p class="hint">选择单个治疗领域，查看其药物形式、研发阶段、公司与交易结构</p>
     <div style="margin-bottom:10px"><select class="dd-btn" id="th-area">${INDS.map(i=>`<option ${i===therapyArea?'selected':''}>${i}</option>`).join('')}</select></div>
     <div class="grid g2"><div id="th-mod" class="chart ch-md"></div><div id="th-stage" class="chart ch-md"></div></div>
