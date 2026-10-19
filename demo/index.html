@@ -262,7 +262,7 @@ const NAV = [
   ['pipeline','技术与管线 Modality & Pipeline'], ['therapy','治疗领域 Therapeutic Areas'], ['companies','交易参与方 Companies'],
   ['explorer','交易数据库 Transaction Explorer']
 ];
-const PAGE_EN = {overview:'Market Overview — Market performance, key events, core metrics and signals', landscape:'Deal Landscape — Deal type, direction, geography, stage and structure distribution', economics:'Deal Economics — Upfront, milestones, total value, disclosure rate and value distribution', pipeline:'Modality & Pipeline — Drug modality, mechanism, target, stage and technology momentum', therapy:'Therapeutic Areas — Deal activity and trends by disease area', companies:'Companies — Buyers, sellers, licensors, licensees and their deal records & ecosystem network', explorer:'Transaction Explorer — Search individual deals by company, asset, target, date and deal type'};
+const PAGE_EN = {overview:'Market Overview — Market performance, key events, core metrics and signals', landscape:'Deal Landscape — For the selected years, analyze deal count and upfront payment distribution across four dimensions: asset stage, modality, disease area, and deal type.', economics:'Deal Economics — Upfront, milestones, total value, disclosure rate and value distribution', pipeline:'Modality & Pipeline — Drug modality, mechanism, target, stage and technology momentum', therapy:'Therapeutic Areas — Deal activity and trends by disease area', companies:'Companies — Buyers, sellers, licensors, licensees and their deal records & ecosystem network', explorer:'Transaction Explorer — Search individual deals by company, asset, target, date and deal type'};
 const DIM_SEG = {overview:'市场分析', landscape:'市场分析', economics:'市场分析', pipeline:'交易内容分析', therapy:'交易内容分析', companies:'交易内容分析', explorer:'数据检索'};
 
 // ===== 过滤器栏 =====
@@ -481,7 +481,7 @@ function renderLandscape(deals){
     {key:'dealType', t:'By Deal Type', q:'What kinds of deals are happening?', color:DTYPE_COLORS}
   ];
   main.innerHTML = title('交易格局 Deal Landscape', PAGE_EN.landscape) +
-    `<div class="card" style="margin-bottom:14px"><p class="hint" style="margin:0">核心问题：<b>在选定年份下，从研发阶段、药物形式、治疗领域、交易类型四个维度分析数量分布与首付款分布。</b></p></div>` +
+    `<div class="card" style="margin-bottom:14px"><p class="hint" style="margin:0">Core question: <b>For the selected years, analyze deal count and upfront payment distribution across four dimensions: asset stage, modality, disease area, and deal type.</b></p></div>` +
     `<div class="grid g2">${dims.map((d,i)=>`
       <div class="card"><h3>${d.t}</h3><p class="hint">${d.q}</p>
         <div class="duo">
