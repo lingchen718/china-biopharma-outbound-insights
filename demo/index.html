@@ -468,8 +468,15 @@ function keyInsight(deals, dim){
   const topU=Object.keys(ups).sort((a,b)=>ups[b]-ups[a])[0];
   let gap=null, gm=-1;
   cats.forEach(c=>{ const cp=counts[c]/total*100, up=ups[c]?ups[c]/totalUp*100:0; const g=Math.abs(up-cp); if(g>gm){gm=g; gap=c;} });
-  const share = topU ? `，<b>${labelOf(dim,topU)}</b> 首付款占比最高（${Math.round(ups[topU]/totalUp*100)}%）` : '';
-  return `Key Insight：<b>${labelOf(dim,topC)}</b> 交易数量占比最高（${Math.round(counts[topC]/total*100)}%）${share}；数量与金额占比差距最大的是 <b>${labelOf(dim,gap)}</b>。未披露首付款不计入金额占比（Upfront disclosed for ${cov}% of deals）。`;
+  const pctC=Math.round(counts[topC]/total*100);
+  const pctU=topU ? Math.round(ups[topU]/totalUp*100) : 0;
+  const cn = topU
+    ? `<b>${labelOf(dim,topC)}</b> 交易数量占比最高（${pctC}%）；<b>${labelOf(dim,topU)}</b> 首付款占比最高（${pctU}%）；数量与金额占比差距最大的是 <b>${labelOf(dim,gap)}</b>。`
+    : `<b>${labelOf(dim,topC)}</b> 交易数量占比最高（${pctC}%）；数量与金额占比差距最大的是 <b>${labelOf(dim,gap)}</b>。`;
+  const en = topU
+    ? `<b>${labelOf(dim,topC)}</b> has the largest deal share (${pctC}%); <b>${labelOf(dim,topU)}</b> has the largest disclosed upfront share (${pctU}%); the largest gap between deal share and upfront share is <b>${labelOf(dim,gap)}</b>.`
+    : `<b>${labelOf(dim,topC)}</b> has the largest deal share (${pctC}%); the largest gap between deal share and upfront share is <b>${labelOf(dim,gap)}</b>.`;
+  return `<div><b style="color:var(--accent)">关键发现：</b>${cn}</div><div style="margin-top:6px"><b style="color:var(--accent)">Key Insight:</b> ${en}</div>`;
 }
 
 function renderLandscape(deals){
