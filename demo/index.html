@@ -544,8 +544,17 @@ function trendRows(deals, gran){
       totYoY:(prev&&prev.tot)?(r.tot-prev.tot)/prev.tot*100:null};
   });
 }
+function darken(hex, t){
+  const n=parseInt(hex.slice(1),16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  const f=1-t*0.6;
+  return '#'+((1<<24)+(Math.round(r*f)<<16)+(Math.round(g*f)<<8)+Math.round(b*f)).toString(16).slice(1);
+}
 function fmtYoY(v){ return v==null?'N/A':(v>=0?'+':'')+v.toFixed(1)+'%'; }
-function trendBarOption(rows, metric, color){
+function trendBarOption(rows, metric, color, gran){
+  const years = rows.map(r=>+r.key.slice(0,4));
+  const minY = Math.min(...years), maxY = Math.max(...years);
+  const colorFor = r => (gran==='year') ? color : darken(color, (maxY===minY?1:((+r.key.slice(0,4)-minY)/(maxY-minY))));
   const valKey = metric==='count'?'count':metric==='up'?'up':'tot';
   const yoyKey = metric==='count'?'countYoY':metric==='up'?'upYoY':'totYoY';
   const interval = rows.length>36 ? Math.ceil(rows.length/12) : 0;
@@ -558,10 +567,10 @@ function trendBarOption(rows, metric, color){
       const rate = metric==='up' ? r.upRate : r.totRate;
       return `${r.label}<br/>${title}：<b>${fmtM(r[valKey])}</b><br/>已披露笔数 Disclosed deals：<b>${n}</b><br/>披露率 Disclosure rate：<b>${rate}%</b><br/>YoY：${fmtYoY(r[yoyKey])}`;
     }},
-    grid:{left:8,right:8,top:18,bottom:8,containLabel:true},
+    grid:{left:8,right:8,top:36,bottom:8,containLabel:true},
     xAxis:{type:'category', data:rows.map(r=>r.label), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate: rows.length>6?45:0, interval}},
     yAxis:{type:'value', ...AXIS, name: metric==='count'?'Deals':'US$', nameTextStyle:{color:'#8b9bb0'}},
-    series:[{type:'bar', barMaxWidth:34, data:rows.map(r=>({value:r[valKey], itemStyle:{color:color, borderRadius:[4,4,0,0]}, _r:r}))}]
+    series:[{type:'bar', barMaxWidth:34, data:rows.map(r=>({value:r[valKey], itemStyle:{color:colorFor(r), borderRadius:[4,4,0,0]}, _r:r}))}]
   };
 }
 function latestYoY(rows, yoyKey){
@@ -605,9 +614,9 @@ function renderEconomics(deals){
       <div class="metric-switch" id="eco-gran"></div>
     </div>
     <div class="grid g3">
-      <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">交易数量趋势 Deal Count Trend</div><div id="eco-count" class="chart" style="height:240px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-count-yoy"></div></div>
-      <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">已披露首付款总额趋势 Total Disclosed Upfront Trend</div><div id="eco-up" class="chart" style="height:240px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-up-yoy"></div></div>
-      <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">潜在交易总额趋势 Total Potential Value Trend</div><div id="eco-tot" class="chart" style="height:240px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-tot-yoy"></div></div>
+      <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">交易数量趋势 Deal Count Trend</div><div id="eco-count" class="chart" style="height:300px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-count-yoy"></div></div>
+      <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">已披露首付款总额趋势 Total Disclosed Upfront Trend</div><div id="eco-up" class="chart" style="height:300px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-up-yoy"></div></div>
+      <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">潜在交易总额趋势 Total Potential Value Trend</div><div id="eco-tot" class="chart" style="height:300px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-tot-yoy"></div></div>
     </div>
     <div class="insight" id="eco-insight" style="margin-top:12px"></div>
   </div>
@@ -626,9 +635,9 @@ function renderEconomics(deals){
 
   // 趋势三图 + 时间粒度切换
   wireSwitch('eco-gran', {year:'Year 年', quarter:'Quarter 季度', month:'Month 月'}, ecoGran, v=>{ ecoGran=v; render(); });
-  const c1 = mount('eco-count', trendBarOption(rows,'count','#60a5fa'));
-  const c2 = mount('eco-up', trendBarOption(rows,'up','#2dd4bf'));
-  const c3 = mount('eco-tot', trendBarOption(rows,'tot','#fbbf24'));
+  const c1 = mount('eco-count', trendBarOption(rows,'count','#60a5fa',ecoGran));
+  const c2 = mount('eco-up', trendBarOption(rows,'up','#2dd4bf',ecoGran));
+  const c3 = mount('eco-tot', trendBarOption(rows,'tot','#fbbf24',ecoGran));
   [c1,c2,c3].forEach(c=>{ if(c) c.on('click', p=>{ const y=+String(p.data._r.key).slice(0,4); state.years=[y,y]; state.page='explorer'; state.search=''; render(); }); });
   document.getElementById('eco-count-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'countYoY');
   document.getElementById('eco-up-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'upYoY');
