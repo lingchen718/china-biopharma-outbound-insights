@@ -531,7 +531,7 @@ function renderEconomics(deals){
   </div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>金额分布 Deal Value Distribution</h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）</p><div id="ec-box" class="chart ch-md"></div></div>
+    <div class="card"><h3>金额分布 Deal Value Distribution</h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）。单位：US$M（百万美元）。Grouped by modality; unit: US$M (millions).</p><div id="ec-box" class="chart ch-md"></div></div>
     <div class="card"><h3>披露率 Value Disclosure Rate</h3><p class="hint">披露率反映金额是否可知，而非金额是否大于 0</p><div id="ec-disc" class="chart ch-md"></div></div>
   </div>
 
@@ -551,7 +551,7 @@ function renderEconomics(deals){
     tooltip:{...TOOLTIP_DARK, trigger:'item'},
     grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
     xAxis:{type:'category', data:mods.map(m=>labelOf('modality',m)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
-    yAxis:{type:'value', ...AXIS, name:'$M', nameTextStyle:{color:'#8b9bb0'}},
+    yAxis:{type:'value', ...AXIS, name:'US$M', nameTextStyle:{color:'#8b9bb0'}},
     series:[{type:'boxplot', data:mods.map(m=>quartiles(disc.filter(d=>d.modality===m).map(d=>d.total))), itemStyle:{color:'#2dd4bf', borderColor:'#5eead4'}, boxWidth:[12,28]}]
   });
   // 披露状态
