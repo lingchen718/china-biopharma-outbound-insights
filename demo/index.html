@@ -512,6 +512,7 @@ const DTYPE_SYMBOL = {'License-out':'circle','Co-development':'diamond','Asset t
 
 // ===== 交易金额 · 趋势模块 =====
 let ecoGran = 'year';
+const YEAR_COLORS = {2019:'#60a5fa',2020:'#2dd4bf',2021:'#fbbf24',2022:'#c084fc',2023:'#f87171',2024:'#34d399',2025:'#22d3ee',2026:'#fb7185'};
 function periodKeyParts(dateStr, gran){
   const y=+dateStr.slice(0,4), m=+dateStr.slice(5,7);
   if(gran==='year') return {y, key:String(y), label:String(y)};
@@ -552,13 +553,14 @@ function darken(hex, t){
 }
 function fmtYoY(v){ return v==null?'N/A':(v>=0?'+':'')+v.toFixed(1)+'%'; }
 function trendBarOption(rows, metric, color, gran){
-  const years = rows.map(r=>+r.key.slice(0,4));
-  const minY = Math.min(...years), maxY = Math.max(...years);
-  const colorFor = r => (gran==='year') ? color : darken(color, (maxY===minY?1:((+r.key.slice(0,4)-minY)/(maxY-minY))));
   const valKey = metric==='count'?'count':metric==='up'?'up':'tot';
   const yoyKey = metric==='count'?'countYoY':metric==='up'?'upYoY':'totYoY';
   const interval = rows.length>36 ? Math.ceil(rows.length/12) : 0;
-  return {
+  const byYear = gran==='quarter' || gran==='month';
+  const yrOf = r => String(r.key).slice(0,4);
+  const yearSet = byYear ? [...new Set(rows.map(yrOf))].sort() : [];
+  const colorFor = r => byYear ? (YEAR_COLORS[yrOf(r)] || color) : color;
+  const option = {
     tooltip:{...TOOLTIP_DARK, trigger:'axis', axisPointer:{type:'shadow'}, formatter: ps=>{
       const r=ps[0].data._r;
       if(metric==='count') return `${r.label}<br/>Deals：<b>${r.count}</b><br/>YoY：${fmtYoY(r.countYoY)}`;
@@ -567,11 +569,15 @@ function trendBarOption(rows, metric, color, gran){
       const rate = metric==='up' ? r.upRate : r.totRate;
       return `${r.label}<br/>${title}：<b>${fmtM(r[valKey])}</b><br/>已披露笔数 Disclosed deals：<b>${n}</b><br/>披露率 Disclosure rate：<b>${rate}%</b><br/>YoY：${fmtYoY(r[yoyKey])}`;
     }},
-    grid:{left:8,right:8,top:36,bottom:8,containLabel:true},
+    grid:{left:8,right:20,top: byYear?46:34, bottom:8, containLabel:true},
     xAxis:{type:'category', data:rows.map(r=>r.label), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate: rows.length>6?45:0, interval}},
-    yAxis:{type:'value', ...AXIS, name: metric==='count'?'Deals':'US$', nameTextStyle:{color:'#8b9bb0'}},
+    yAxis:{type:'value', ...AXIS, name: metric==='count'?'Deals':'US$', nameTextStyle:{color:'#8b9bb0'}, nameGap:12},
     series:[{type:'bar', barMaxWidth:34, data:rows.map(r=>({value:r[valKey], itemStyle:{color:colorFor(r), borderRadius:[4,4,0,0]}, _r:r}))}]
   };
+  if(byYear){
+    option.legend = {top:0, data: yearSet.map(y=>({name:String(y), icon:'rect', itemStyle:{color:YEAR_COLORS[y]}})), textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8};
+  }
+  return option;
 }
 function latestYoY(rows, yoyKey){
   const r=[...rows].reverse().find(x=>x[yoyKey]!=null);
