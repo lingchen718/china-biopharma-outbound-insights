@@ -510,15 +510,83 @@ function renderLandscape(deals){
 // ===== 交易金额 =====
 const DTYPE_SYMBOL = {'License-out':'circle','Co-development':'diamond','Asset transfer':'triangle','Non-exclusive':'rect','Option':'roundRect','M&A':'pin','JV':'arrow','Other':'rect'};
 
+// ===== 交易金额 · 趋势模块 =====
+let ecoGran = 'year';
+function periodKeyParts(dateStr, gran){
+  const y=+dateStr.slice(0,4), m=+dateStr.slice(5,7);
+  if(gran==='year') return {y, key:String(y), label:String(y)};
+  if(gran==='quarter'){ const q=Math.floor((m-1)/3)+1; return {y, key:`${y}-Q${q}`, label:`${y} Q${q}`}; }
+  return {y, key:`${y}-${String(m).padStart(2,'0')}`, label:`${y}-${String(m).padStart(2,'0')}`};
+}
+function trendPeriods(deals, gran){
+  const ys=[...new Set(deals.map(d=>d.year))].sort((a,b)=>a-b);
+  if(!ys.length) return [];
+  const min=ys[0], max=ys[ys.length-1], arr=[];
+  if(gran==='year'){ for(let y=min;y<=max;y++) arr.push({key:String(y),label:String(y)}); }
+  else if(gran==='quarter'){ for(let y=min;y<=max;y++) for(let q=1;q<=4;q++) arr.push({key:`${y}-Q${q}`,label:`${y} Q${q}`}); }
+  else { for(let y=min;y<=max;y++) for(let m=1;m<=12;m++) arr.push({key:`${y}-${String(m).padStart(2,'0')}`,label:`${y}-${String(m).padStart(2,'0')}`}); }
+  return arr;
+}
+function prevPeriodKey(key, gran){
+  if(gran==='year') return String(+key-1);
+  if(gran==='quarter'){ const [y,q]=key.split('-Q'); return `${+y-1}-Q${q}`; }
+  const [y,m]=key.split('-'); return `${+y-1}-${m}`;
+}
+function trendRows(deals, gran){
+  const periods=trendPeriods(deals,gran);
+  const map={}; periods.forEach(p=>map[p.key]={key:p.key,label:p.label,count:0,up:0,tot:0,upN:0,totN:0});
+  deals.forEach(d=>{ const k=periodKeyParts(d.date,gran).key; if(!map[k]) return; const r=map[k]; r.count++; if(d.disclosed){ r.up+=d.upfront||0; r.upN++; r.tot+=d.total||0; r.totN++; } });
+  return periods.map(p=>{ const r=map[p.key]; const prev=map[prevPeriodKey(p.key,gran)];
+    return {key:r.key,label:r.label,count:r.count,up:round2(r.up),tot:round2(r.tot),upN:r.upN,totN:r.totN,
+      upRate:r.count?Math.round(r.upN/r.count*100):0, totRate:r.count?Math.round(r.totN/r.count*100):0,
+      countYoY:(prev&&prev.count)?(r.count-prev.count)/prev.count*100:null,
+      upYoY:(prev&&prev.up)?(r.up-prev.up)/prev.up*100:null,
+      totYoY:(prev&&prev.tot)?(r.tot-prev.tot)/prev.tot*100:null};
+  });
+}
+function fmtYoY(v){ return v==null?'N/A':(v>=0?'+':'')+v.toFixed(1)+'%'; }
+function trendBarOption(rows, metric, color){
+  const valKey = metric==='count'?'count':metric==='up'?'up':'tot';
+  const yoyKey = metric==='count'?'countYoY':metric==='up'?'upYoY':'totYoY';
+  const interval = rows.length>36 ? Math.ceil(rows.length/12) : 0;
+  return {
+    tooltip:{...TOOLTIP_DARK, trigger:'axis', axisPointer:{type:'shadow'}, formatter: ps=>{
+      const r=ps[0].data._r;
+      if(metric==='count') return `${r.label}<br/>Deals：<b>${r.count}</b><br/>YoY：${fmtYoY(r.countYoY)}`;
+      const title = metric==='up' ? 'Total Disclosed Upfront' : 'Total Potential Value';
+      const n = metric==='up' ? r.upN : r.totN;
+      const rate = metric==='up' ? r.upRate : r.totRate;
+      return `${r.label}<br/>${title}：<b>${fmtM(r[valKey])}</b><br/>已披露笔数 Disclosed deals：<b>${n}</b><br/>披露率 Disclosure rate：<b>${rate}%</b><br/>YoY：${fmtYoY(r[yoyKey])}`;
+    }},
+    grid:{left:8,right:8,top:18,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:rows.map(r=>r.label), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate: rows.length>6?45:0, interval}},
+    yAxis:{type:'value', ...AXIS, name: metric==='count'?'Deals':'US$', nameTextStyle:{color:'#8b9bb0'}},
+    series:[{type:'bar', barMaxWidth:34, data:rows.map(r=>({value:r[valKey], itemStyle:{color:color, borderRadius:[4,4,0,0]}, _r:r}))}]
+  };
+}
+function latestYoY(rows, yoyKey){
+  const r=[...rows].reverse().find(x=>x[yoyKey]!=null);
+  return r ? `${r.label}：${fmtYoY(r[yoyKey])}` : 'N/A';
+}
+function trendInsight(rows){
+  const latest=[...rows].reverse().find(r=>r.count>0) || rows[rows.length-1];
+  const c=fmtYoY(latest.countYoY), u=fmtYoY(latest.upYoY), t=fmtYoY(latest.totYoY);
+  let extra='';
+  if(latest.countYoY!=null && latest.countYoY>0 && latest.upYoY!=null && latest.upYoY<0) extra=' 交易数量增长但已披露首付款总额下降。';
+  else if(latest.upYoY!=null && latest.upYoY>0) extra=' 已披露首付款总额同比增长。';
+  return `<b style="color:var(--accent)">关键发现 Key Insight：</b>Deal Count YoY ${c}；Total Disclosed Upfront YoY ${u}；Total Potential Value YoY ${t}。${extra}`;
+}
+
 function renderEconomics(deals){
   const disc = deals.filter(d=>d.disclosed && d.total>0);
-  const nDisc = deals.filter(d=>d.disclosed).length, nUnd = deals.length - nDisc;
+  const nDisc = deals.filter(d=>d.disclosed).length;
   const medianUp = median(deals.filter(d=>d.disclosed).map(d=>d.upfront));
   const totalUp = sum(deals.filter(d=>d.disclosed).map(d=>d.upfront));
   const totalV = sum(deals.filter(d=>d.disclosed).map(d=>d.total));
   const upCov = Math.round(nDisc/deals.length*100);
   const derivable = deals.filter(d=>d.milestoneDerivable && d.milestone>0);
   const colorLegend = MODS.map(m=>`<span style="display:inline-flex;align-items:center;gap:4px"><i style="width:10px;height:10px;border-radius:50%;background:${m.c}"></i>${m.k}</span>`).join('');
+  const rows = trendRows(deals, ecoGran);
 
   main.innerHTML = title('交易金额 Deal Economics', PAGE_EN.economics) +
   `<div class="kpis" style="grid-template-columns:repeat(5,1fr)">
@@ -530,10 +598,21 @@ function renderEconomics(deals){
       .map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}
   </div>
 
-  <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>金额分布 Deal Value Distribution</h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）。单位：US$M（百万美元）。Grouped by modality; unit: US$M (millions).</p><div id="ec-box" class="chart ch-md"></div></div>
-    <div class="card"><h3>披露率 Value Disclosure Rate</h3><p class="hint">披露率反映金额是否可知，而非金额是否大于 0</p><div id="ec-disc" class="chart ch-md"></div></div>
+  <div class="card" style="margin-top:14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div><h3>交易活跃度与金额趋势 Deal Activity & Value Trends</h3>
+      <p class="hint">按签署日期统计交易数量、已披露首付款总额与潜在交易总额；三图共享时间粒度。最新期间可能为进行中期间（如 2026 YTD）。Undisclosed values are excluded from sums.</p></div>
+      <div class="metric-switch" id="eco-gran"></div>
+    </div>
+    <div class="grid g3">
+      <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">交易数量趋势 Deal Count Trend</div><div id="eco-count" class="chart" style="height:240px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-count-yoy"></div></div>
+      <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">已披露首付款总额趋势 Total Disclosed Upfront Trend</div><div id="eco-up" class="chart" style="height:240px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-up-yoy"></div></div>
+      <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">潜在交易总额趋势 Total Potential Value Trend</div><div id="eco-tot" class="chart" style="height:240px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-tot-yoy"></div></div>
+    </div>
+    <div class="insight" id="eco-insight" style="margin-top:12px"></div>
   </div>
+
+  <div class="card" style="margin-top:14px"><h3>金额分布 Deal Value Distribution</h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）。单位：US$M（百万美元）。Grouped by modality; unit: US$M (millions).</p><div id="ec-box" class="chart ch-md"></div></div>
 
   <div class="card" style="margin-top:14px"><h3>交易金额探索 Deal Economics Explorer — Transaction-level Economics</h3>
     <div class="size-legend"><span style="color:var(--ink-2)">气泡面积 Bubble area = 首付款 Upfront：</span><span><i style="width:10px;height:10px"></i>$10M</span><span><i style="width:17px;height:17px"></i>$50M</span><span><i style="width:32px;height:32px"></i>$200M</span></div>
@@ -545,6 +624,17 @@ function renderEconomics(deals){
     <p class="hint">Derived as total − upfront only when the consideration is consistent and separable; deals with equity/royalty components are marked Not Derivable.</p>
     <div id="ec-milestone"></div></div>`;
 
+  // 趋势三图 + 时间粒度切换
+  wireSwitch('eco-gran', {year:'Year 年', quarter:'Quarter 季度', month:'Month 月'}, ecoGran, v=>{ ecoGran=v; render(); });
+  const c1 = mount('eco-count', trendBarOption(rows,'count','#60a5fa'));
+  const c2 = mount('eco-up', trendBarOption(rows,'up','#2dd4bf'));
+  const c3 = mount('eco-tot', trendBarOption(rows,'tot','#fbbf24'));
+  [c1,c2,c3].forEach(c=>{ if(c) c.on('click', p=>{ const y=+String(p.data._r.key).slice(0,4); state.years=[y,y]; state.page='explorer'; state.search=''; render(); }); });
+  document.getElementById('eco-count-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'countYoY');
+  document.getElementById('eco-up-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'upYoY');
+  document.getElementById('eco-tot-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'totYoY');
+  document.getElementById('eco-insight').innerHTML = trendInsight(rows);
+
   // 箱线图
   const mods = MODS.map(m=>m.k).filter(m=>disc.some(d=>d.modality===m));
   mount('ec-box', {
@@ -553,15 +643,6 @@ function renderEconomics(deals){
     xAxis:{type:'category', data:mods.map(m=>labelOf('modality',m)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'value', ...AXIS, name:'US$M', nameTextStyle:{color:'#8b9bb0'}},
     series:[{type:'boxplot', data:mods.map(m=>quartiles(disc.filter(d=>d.modality===m).map(d=>d.total))), itemStyle:{color:'#2dd4bf', borderColor:'#5eead4'}, boxWidth:[12,28]}]
-  });
-  // 披露状态
-  mount('ec-disc', {
-    tooltip:{...TOOLTIP_DARK, trigger:'item', formatter:'{b}: {c} ({d}%)'},
-    legend:{bottom:0, textStyle:{fontSize:11, color:'#cbd5e1'}},
-    title:{text:upCov+'%', subtext:'Upfront Disclosed', left:'center', top:'38%', textStyle:{fontSize:20, color:'#e6edf3', fontWeight:700}, subtextStyle:{fontSize:10.5, color:'#8b9bb0'}},
-    series:[{type:'pie', radius:['46%','68%'], center:['50%','46%'],
-      data:[{name:'金额已披露 Disclosed', value:nDisc, itemStyle:{color:'#2dd4bf'}},{name:'未披露 Undisclosed', value:nUnd, itemStyle:{color:'#334155'}}],
-      label:{show:false}, emphasis:{scale:true, scaleSize:6}}]
   });
   // 气泡图（面积映射首付款 + jitter）
   const bubbleData = disc.map((d,idx)=>({
