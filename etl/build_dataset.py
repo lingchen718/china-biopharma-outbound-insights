@@ -193,8 +193,14 @@ def main():
     }
 
     os.makedirs(OUT_DIR, exist_ok=True)
+    payload = {"meta": meta, "deals": deals}
     with open(os.path.join(OUT_DIR, "deals.json"), "w", encoding="utf-8") as f:
-        json.dump({"meta": meta, "deals": deals}, f, ensure_ascii=False, indent=2)
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    # 同步一份到 demo 目录，供前端原型直接 fetch
+    demo_dir = os.path.join(os.path.dirname(OUT_DIR), "demo", "data")
+    os.makedirs(demo_dir, exist_ok=True)
+    with open(os.path.join(demo_dir, "deals.json"), "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
 
     # 质量报告
     lines = ["# 数据质量报告（ETL 自动生成）", "", f"- 生成时间：{meta['generated']}", f"- 总记录：{meta['total_rows']}", f"- 唯一 deal_id：{meta['unique_deal_ids']}", ""]

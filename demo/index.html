@@ -159,19 +159,23 @@ const MODS = [
   {k:'Small molecule', label:'小分子 Small molecule', c:'#fbbf24'},
   {k:'CAR-T / Cell', label:'细胞疗法 CAR-T/Cell', c:'#f87171'},
   {k:'Peptide/Protein', label:'多肽/蛋白 Peptide/Protein', c:'#34d399'},
+  {k:'Fusion protein', label:'融合蛋白 Fusion protein', c:'#a78bfa'},
+  {k:'RNA therapy', label:'RNA疗法 RNA therapy', c:'#38bdf8'},
+  {k:'Other GTx', label:'基因/溶瘤病毒 Other GTx', c:'#fb923c'},
   {k:'Vaccine', label:'疫苗 Vaccine', c:'#22d3ee'},
   {k:'Other', label:'其他 Other', c:'#94a3b8'}
 ];
 const MODMAP = Object.fromEntries(MODS.map(m => [m.k, m]));
-const INDS = ['Oncology','Autoimmune','CNS','Metabolic','Infectious','Rare disease','Vaccine','Other'];
-const IND_LABEL = {'Oncology':'肿瘤 Oncology','Autoimmune':'自免 Autoimmune','CNS':'中枢神经 CNS','Metabolic':'代谢 Metabolic','Infectious':'感染 Infectious','Rare disease':'罕见病 Rare disease','Vaccine':'疫苗 Vaccine','Other':'其他 Other'};
+const INDS = ['Oncology','Autoimmune','CNS','Metabolic','Infectious','Rare disease','Respiratory','CV','Ophthalmology','Vaccine','Other'];
+const IND_LABEL = {'Oncology':'肿瘤 Oncology','Autoimmune':'自免 Autoimmune','CNS':'中枢神经 CNS','Metabolic':'代谢 Metabolic','Infectious':'感染 Infectious','Rare disease':'罕见病 Rare disease','Respiratory':'呼吸 Respiratory','CV':'心血管 CV','Ophthalmology':'眼科 Ophthalmology','Vaccine':'疫苗 Vaccine','Other':'其他 Other'};
 const STAGES = ['Preclinical','IND approved','Phase I','Phase II','Phase III','Registration','Marketed','Multiple Stages','Unknown'];
 const STAGE_LABEL = {'Preclinical':'临床前 Preclinical','IND approved':'IND 获批','Phase I':'I 期 Phase I','Phase II':'II 期 Phase II','Phase III':'III 期 Phase III','Registration':'注册阶段 Registration','Marketed':'已上市 Marketed','Multiple Stages':'多阶段 Multiple Stages','Unknown':'未知 Unknown'};
-const DTYPES = ['License-out','Co-development','Asset transfer','Non-exclusive','Option','M&A','JV','Other'];
-const DTYPE_LABEL = {'License-out':'对外授权 License-out','Co-development':'合作开发 Co-development','Asset transfer':'资产转让 Asset transfer','Non-exclusive':'非独占许可 Non-exclusive','Option':'期权协议 Option','M&A':'并购 M&A','JV':'合资 JV','Other':'其他 Other'};
-const REGIONS = ['US & Canada','Europe','APAC','Emerging Markets','Global','Other'];
-const REGION_LABEL = {'US & Canada':'美国+加拿大 US & Canada','Europe':'欧洲 Europe','APAC':'亚太 APAC','Emerging Markets':'新兴市场 Emerging Markets','Global':'全球 Global','Other':'其他 Other'};
+const DTYPES = ['License-out','Co-development','Asset transfer','Non-exclusive','Option','M&A','JV','Distribution','Other'];
+const DTYPE_LABEL = {'License-out':'对外授权 License-out','Co-development':'合作开发 Co-development','Asset transfer':'资产转让 Asset transfer','Non-exclusive':'非独占许可 Non-exclusive','Option':'期权协议 Option','M&A':'并购 M&A','JV':'合资 JV','Distribution':'分销 Distribution','Other':'其他 Other'};
+const REGIONS = ['US & Canada','Europe','APAC','Emerging Markets','Global','Global ex-Greater China','Japan','South Korea','Greater China','China Mainland','North America','US & Europe','Other'];
+const REGION_LABEL = {'US & Canada':'美国+加拿大 US & Canada','Europe':'欧洲 Europe','APAC':'亚太 APAC','Emerging Markets':'新兴市场 Emerging Markets','Global':'全球 Global','Global ex-Greater China':'全球除大中华区 Global ex-Greater China','Japan':'日本 Japan','South Korea':'韩国 South Korea','Greater China':'大中华 Greater China','China Mainland':'中国境内 China Mainland','North America':'北美 North America','US & Europe':'欧美区 US & Europe','Other':'其他 Other'};
 const CONF = ['high','high','medium','medium','low'];
+const REGION_FLAGS = {'US & Canada':'🇺🇸','Europe':'🇪🇺','APAC':'🌏','Emerging Markets':'🌍','Global':'🌎','Global ex-Greater China':'🌐','Japan':'🇯🇵','South Korea':'🇰🇷','Greater China':'🇨🇳','China Mainland':'🇨🇳','North America':'🌎','US & Europe':'🌐','Other':'🏳️'};
 
 function labelOf(dim, v){
   if(dim==='modality') return MODMAP[v] ? MODMAP[v].label : v;
@@ -205,46 +209,44 @@ function round2(x){ return Math.round(x*100)/100; }
 function fmtM(v){ if(v==null) return '—'; return v >= 1000 ? '$'+(v/1000).toFixed(2)+'B' : '$'+Math.round(v)+'M'; }
 function fmtInt(n){ return n.toLocaleString('en-US'); }
 
-// ===== 生成模拟数据（2019–2026）=====
-const DEALS = [];
-(function gen(){
-  const byYear = {2019:11, 2020:14, 2021:16, 2022:22, 2023:28, 2024:30, 2025:34, 2026:14};
-  let seq = 0;
-  for(const y in byYear){
-    for(let i=0;i<byYear[y];i++){
-      seq++;
-      const t = (+y - 2019)/7; // 0..1
-      const disclosed = rnd() > 0.20;
-      const upfront = disclosed ? round2(Math.exp(2.2 + rnd()*3.8)) : null;
-      const total = disclosed ? round2(upfront * (1.3 + rnd()*5.5)) : null;
-      const country = wpick([
-        ['United States',.27],['Canada',.03],['Germany',.07],['United Kingdom',.05],
-        ['Switzerland',.04],['France',.02],['Japan',.07],['South Korea',.06],
-        ['Singapore',.03],['Australia',.03],['Indonesia',.03],['India',.03],['Brazil',.02],['Global',.20]
-      ]);
-      const dealType = wpick([['License-out',.52],['Co-development',.24],['Asset transfer',.06],['Non-exclusive',.05],['Option',.05],['M&A',.04],['JV',.03],['Other',.01]]);
-      const month = String(1+Math.floor(rnd()*12)).padStart(2,'0');
-      const day = String(1+Math.floor(rnd()*28)).padStart(2,'0');
-      // 里程碑仅在可拆分时派生（M&A/JV 含股权等对价，标记 Not Derivable）
-      const derivable = disclosed && dealType!=='M&A' && dealType!=='JV';
-      DEALS.push({
-        id: 'DEMO-' + y + '-' + String(seq).padStart(3,'0'),
-        year: +y, date: y+'-'+month+'-'+day,
-        licensor: pick(CN_COMPANIES), licensee: pick(OS_COMPANIES),
-        asset: pick(ASSET_PREFIX)+'-'+(100+Math.floor(rnd()*900)), target: pick(TARGETS),
-        modality: wpick([['ADC',.10+.15*t],['Bispecific',.08+.12*t],['mAb',.28-.10*t],['Small molecule',.26-.06*t],['CAR-T / Cell',.08],['Peptide/Protein',.08],['Vaccine',.05],['Other',.07]]),
-        indication: wpick([['Oncology',.46],['Autoimmune',.12],['CNS',.09],['Metabolic',.09],['Infectious',.09],['Rare disease',.06],['Vaccine',.05],['Other',.04]]),
-        stage: wpick([['Preclinical',.32-.12*t],['IND approved',.07],['Phase I',.16],['Phase II',.16],['Phase III',.13+.08*t],['Registration',.05],['Marketed',.05+.04*t],['Multiple Stages',.04],['Unknown',.02]]),
-        dealType, country, region: COUNTRY_REGION[country]||'Other', confidence: pick(CONF),
-        upfront, total, milestone: derivable ? round2(total-upfront) : null, milestoneDerivable: derivable, disclosed
-      });
-    }
+// ===== 真实数据加载（data/deals.json）=====
+let DEALS = [];
+let DATA_LOADED = false;
+
+function normalizeDeal(d){
+  return {
+    id: d.id, date: d.date, year: d.year,
+    licensor: d.licensor || '', licensee: d.licensee || '',
+    asset: d.asset || d.drug_name || '', target: d.target || '',
+    modality: d.modality, indication: d.indication, stage: d.stage,
+    dealType: d.deal_type, region: d.region, territory: d.territory || '',
+    confidence: d.confidence || 'unknown',
+    upfront: d.upfront_musd, total: d.total_value_musd,
+    milestone: d.milestone_musd, milestoneDerivable: d.milestone_derivable,
+    disclosed: d.has_total, hasUpfront: d.has_upfront, hasTotal: d.has_total,
+    valueDisclosure: d.value_disclosure || '',
+    sourceName: d.source_name || '', sourceTitle: d.source_title || '',
+    sourceUrl: d.source_url || '', publishDate: d.publish_date || '',
+    analystNote: d.analyst_note || ''
+  };
+}
+function loadDeals(json){ DEALS = (json.deals || []).map(normalizeDeal); DATA_LOADED = true; }
+async function boot(){
+  try {
+    const resp = await fetch('data/deals.json', {cache:'no-store'});
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    loadDeals(await resp.json());
+  } catch(e){
+    console.warn('真实数据加载失败，使用空数据兜底:', e);
+    DEALS = [];
   }
-})();
+  render();
+}
+boot();
 
 // ===== 全局状态 =====
 const state = {
-  page: 'overview', years: [2019, 2026],
+  page: 'overview', years: [2021, 2026],
   dealType: new Set(DTYPES), modality: new Set(MODS.map(m=>m.k)),
   indication: new Set(INDS), stage: new Set(STAGES), region: new Set(REGIONS), search: ''
 };
@@ -278,7 +280,7 @@ function buildNav(){
   document.getElementById('nav').innerHTML = NAV.map(([k,l])=>`<button data-page="${k}" class="${state.page===k?'active':''}">${l}</button>`).join('');
 }
 function buildFilterbar(){
-  const years=[2019,2020,2021,2022,2023,2024,2025,2026];
+  const years=[2021,2022,2023,2024,2025,2026];
   let html = `<div class="fgroup"><label>Year</label>
     <select class="dd-btn" id="fy0">${years.map(y=>`<option ${y===state.years[0]?'selected':''}>${y}</option>`).join('')}</select>
     <span style="color:var(--muted)">—</span>
@@ -304,10 +306,11 @@ function syncFilterbar(){
 }
 
 // ===== 配色 =====
-const DTYPE_COLORS = Object.fromEntries(DTYPES.map((v,i)=>[v,['#2dd4bf','#60a5fa','#fbbf24','#c084fc','#34d399','#fb7185','#22d3ee','#94a3b8'][i]]));
-const STAGE_COLORS = Object.fromEntries(STAGES.map((v,i)=>[v,['#94a3b8','#22d3ee','#60a5fa','#c084fc','#fbbf24','#34d399','#2dd4bf','#fb7185','#64748b'][i]]));
-const REGION_COLORS = Object.fromEntries(REGIONS.map((v,i)=>[v,['#2dd4bf','#60a5fa','#fbbf24','#c084fc','#34d399','#94a3b8'][i]]));
-const IND_COLORS = Object.fromEntries(INDS.map((v,i)=>[v,['#2dd4bf','#60a5fa','#c084fc','#fbbf24','#f87171','#34d399','#22d3ee','#94a3b8'][i]]));
+const PALETTE = ['#2dd4bf','#60a5fa','#c084fc','#fbbf24','#f87171','#34d399','#22d3ee','#94a3b8','#a78bfa','#38bdf8','#fb923c','#fb7185','#f472b6','#4ade80','#facc15'];
+const DTYPE_COLORS = Object.fromEntries(DTYPES.map((v,i)=>[v,PALETTE[i%PALETTE.length]]));
+const STAGE_COLORS = Object.fromEntries(STAGES.map((v,i)=>[v,PALETTE[i%PALETTE.length]]));
+const REGION_COLORS = Object.fromEntries(REGIONS.map((v,i)=>[v,PALETTE[i%PALETTE.length]]));
+const IND_COLORS = Object.fromEntries(INDS.map((v,i)=>[v,PALETTE[i%PALETTE.length]]));
 
 // ===== 图表工具 =====
 let chartRegistry = [];
@@ -356,9 +359,10 @@ function modColor(m){ return MODMAP[m]?MODMAP[m].c:'#94a3b8'; }
 
 // ===== KPI =====
 function kpiHtml(deals){
-  const disc = deals.filter(d=>d.disclosed);
-  const totalV = sum(disc.map(d=>d.total)), upfrontV = sum(disc.map(d=>d.upfront));
-  const highest = disc.length ? Math.max(...disc.map(d=>d.total)) : 0;
+  const tot = deals.filter(d=>d.hasTotal);
+  const up = deals.filter(d=>d.hasUpfront);
+  const totalV = sum(tot.map(d=>d.total)), upfrontV = sum(up.map(d=>d.upfront));
+  const highest = tot.length ? Math.max(...tot.map(d=>d.total)) : 0;
   const items = [
     ['交易笔数 Total Deals', fmtInt(deals.length), 'Deals'],
     ['披露总额 Total Value', fmtM(totalV), 'Disclosed'],
@@ -374,22 +378,21 @@ function kpiHtml(deals){
 function renderWorldMap(elId, deals){
   const el = document.getElementById(elId);
   const agg = {};
-  deals.forEach(d=>{ if(!agg[d.country]) agg[d.country]={n:0, v:0}; agg[d.country].n++; if(d.disclosed) agg[d.country].v+=d.total; });
+  deals.forEach(d=>{ if(!agg[d.region]) agg[d.region]={n:0, v:0}; agg[d.region].n++; if(d.hasTotal) agg[d.region].v+=d.total||0; });
   const max = Math.max(1, ...Object.values(agg).map(x=>x.n));
   const entries = Object.entries(agg).sort((a,b)=>b[1].n-a[1].n).slice(0,8);
-  el.innerHTML = `<div class="footprint">${entries.map(([ct,a])=>{
-    const r = COUNTRY_REGION[ct]||'Other'; const c = REGION_COLORS[r]||'#94a3b8';
+  el.innerHTML = `<div class="footprint">${entries.map(([r,a])=>{
+    const c = REGION_COLORS[r]||'#94a3b8';
     const active = state.region.size===1 && state.region.has(r);
     return `<div class="fp-tile ${active?'active':''}" style="--c:${c}" onclick="state.region=new Set(['${r}']);showToast('已按授权区域筛选：${labelOf('region',r)}');render();">
-      <div class="fp-flag">${COUNTRY_FLAGS[ct]||'🌐'}</div>
-      <div class="fp-name">${ct}</div>
-      <div class="fp-region">${labelOf('region',r)}</div>
+      <div class="fp-flag">${REGION_FLAGS[r]||'🌐'}</div>
+      <div class="fp-name">${labelOf('region',r)}</div>
       <div class="fp-n">${a.n} <span style="font-size:12px;color:var(--muted);font-weight:500">笔</span></div>
       <div class="fp-v">披露总额 ${fmtM(a.v)}</div>
       <div class="fp-bar"><span style="width:${Math.round(a.n/max*100)}%;background:${c}"></span></div>
     </div>`;
   }).join('')}</div>
-  <div class="hint" style="font-size:11px;margin-top:8px">Map shows deal destinations by territory (country). Click a country to filter by region. Use Reset to clear all filters.</div>`;
+  <div class="hint" style="font-size:11px;margin-top:8px">按授权区域（region）展示，取交易笔数最高的 8 个区域；点击区域 → 全局筛选。</div>`;
 }
 
 // ===== 通用小组件 =====
@@ -458,7 +461,7 @@ function pieCentered(data, centerTitle, centerSub){
     series:[{type:'pie', radius:['40%','64%'], center:['50%','46%'], data, label:{show:false}, emphasis:{scale:true, scaleSize:5}}]};
 }
 function keyInsight(deals, dim){
-  const total=deals.length, disc=deals.filter(d=>d.disclosed);
+  const total=deals.length, disc=deals.filter(d=>d.hasUpfront);
   const totalUp=sum(disc.map(d=>d.upfront))||1, cov=Math.round(disc.length/total*100);
   const counts={}, ups={};
   deals.forEach(d=>{counts[d[dim]]=(counts[d[dim]]||0)+1;});
@@ -496,7 +499,7 @@ function renderLandscape(deals){
         <div class="insight" id="ls-ins-${i}"></div>
       </div>`).join('')}</div>`;
   dims.forEach((d,i)=>{
-    const disc=deals.filter(x=>x.disclosed);
+    const disc=deals.filter(x=>x.hasUpfront);
     const totalUp=sum(disc.map(x=>x.upfront));
     const counts={}, ups={};
     deals.forEach(x=>{counts[x[d.key]]=(counts[x[d.key]]||0)+1;});
@@ -536,7 +539,8 @@ function prevPeriodKey(key, gran){
 function trendRows(deals, gran){
   const periods=trendPeriods(deals,gran);
   const map={}; periods.forEach(p=>map[p.key]={key:p.key,label:p.label,count:0,up:0,tot:0,upN:0,totN:0});
-  deals.forEach(d=>{ const k=periodKeyParts(d.date,gran).key; if(!map[k]) return; const r=map[k]; r.count++; if(d.disclosed){ r.up+=d.upfront||0; r.upN++; r.tot+=d.total||0; r.totN++; } });
+  deals.forEach(d=>{ const k=periodKeyParts(d.date,gran).key; if(!map[k]) return; const r=map[k]; r.count++; if(d.hasUpfront){ r.up+=d.upfront||0; r.upN++; }
+    if(d.hasTotal){ r.tot+=d.total||0; r.totN++; } });
   return periods.map(p=>{ const r=map[p.key]; const prev=map[prevPeriodKey(p.key,gran)];
     return {key:r.key,label:r.label,count:r.count,up:round2(r.up),tot:round2(r.tot),upN:r.upN,totN:r.totN,
       upRate:r.count?Math.round(r.upN/r.count*100):0, totRate:r.count?Math.round(r.totN/r.count*100):0,
@@ -593,22 +597,24 @@ function trendInsight(rows){
 }
 
 function renderEconomics(deals){
-  const disc = deals.filter(d=>d.disclosed && d.total>0);
-  const nDisc = deals.filter(d=>d.disclosed).length;
-  const medianUp = median(deals.filter(d=>d.disclosed).map(d=>d.upfront));
-  const totalUp = sum(deals.filter(d=>d.disclosed).map(d=>d.upfront));
-  const totalV = sum(deals.filter(d=>d.disclosed).map(d=>d.total));
-  const upCov = Math.round(nDisc/deals.length*100);
+  const disc = deals.filter(d=>d.hasTotal && d.total>0);
+  const nUp = deals.filter(d=>d.hasUpfront).length;
+  const nTot = deals.filter(d=>d.hasTotal).length;
+  const medianUp = median(deals.filter(d=>d.hasUpfront).map(d=>d.upfront));
+  const totalUp = sum(deals.filter(d=>d.hasUpfront).map(d=>d.upfront));
+  const totalV = sum(deals.filter(d=>d.hasTotal).map(d=>d.total));
+  const upCov = Math.round(nUp/deals.length*100);
+  const totCov = Math.round(nTot/deals.length*100);
   const derivable = deals.filter(d=>d.milestoneDerivable && d.milestone>0);
   const colorLegend = MODS.map(m=>`<span style="display:inline-flex;align-items:center;gap:4px"><i style="width:10px;height:10px;border-radius:50%;background:${m.c}"></i>${m.k}</span>`).join('');
   const rows = trendRows(deals, ecoGran);
 
   main.innerHTML = title('交易金额 Deal Economics', PAGE_EN.economics) +
   `<div class="kpis" style="grid-template-columns:repeat(5,1fr)">
-    ${[ ['已披露首付款笔数 Deals with Disclosed Upfronts', fmtInt(nDisc)+' / '+fmtInt(deals.length), upCov+'% coverage'],
+    ${[ ['已披露首付款笔数 Deals with Disclosed Upfronts', fmtInt(nUp)+' / '+fmtInt(deals.length), upCov+'% coverage'],
         ['已披露首付款总额 Total Disclosed Upfront', fmtM(totalUp), 'US$'],
         ['已披露首付款中位数 Median Upfront', fmtM(medianUp), 'US$M / deal'],
-        ['已披露总额笔数 Total Disclosed Deals', fmtInt(nDisc)+' / '+fmtInt(deals.length), upCov+'% coverage'],
+        ['已披露总额笔数 Total Disclosed Deals', fmtInt(nTot)+' / '+fmtInt(deals.length), totCov+'% coverage'],
         ['潜在总额 Total Potential Value', fmtM(totalV), 'US$'] ]
       .map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}
   </div>
@@ -851,14 +857,15 @@ function openDeal(id){
       <div><span class="k">治疗领域 Therapeutic Area</span>${labelOf('indication',d.indication)}</div>
       <div><span class="k">研发阶段 Stage</span>${labelOf('stage',d.stage)}</div>
       <div><span class="k">交易类型 Deal Type</span>${labelOf('dealType',d.dealType)}</div>
-      <div><span class="k">授权区域 Territory</span>${d.country}（${labelOf('region',d.region)}）</div>
+      <div><span class="k">授权区域 Region</span>${labelOf('region',d.region)}</div>
+      <div><span class="k">具体地区 Territory</span>${d.territory||'—'}</div>
       <div><span class="k">日期 Date</span>${d.date}</div>
       <div><span class="k">首付款 Upfront</span>${fmtM(d.upfront)}</div>
       <div><span class="k">潜在总额 Total Value</span>${fmtM(d.total)}</div>
       <div><span class="k">里程碑（派生）Milestone</span>${d.milestoneDerivable?fmtM(d.milestone):'Not Derivable'}</div>
       <div><span class="k">置信度 Confidence</span>${d.confidence}</div>
     </div>
-    <div class="note">分析师备注（模拟）：金额按 CSV 口径归一化为 M USD；里程碑仅在首付款与潜在总额对价范围一致、可拆分时按 total − upfront 派生，含股权/分成等对价时标记 Not Derivable。</div>
+    <div class="note">${d.analystNote||'无备注'}</div>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="dd-btn" onclick="state.page='explorer';state.search='${d.asset}';render();closeDeal();">在交易数据库中查看</button>
       <button class="dd-btn" style="background:var(--accent);color:#06211d;border-color:var(--accent);font-weight:600" onclick="closeDeal()">关闭</button>
@@ -919,7 +926,7 @@ function wireFilterbar(){
   document.getElementById('freset').onclick=()=>{ resetFilters(); render(); };
 }
 function resetFilters(){
-  state.years=[2019,2026];
+  state.years=[2021,2026];
   state.dealType=new Set(DTYPES); state.modality=new Set(MODS.map(m=>m.k));
   state.indication=new Set(INDS); state.stage=new Set(STAGES); state.region=new Set(REGIONS); state.search='';
 }
@@ -927,8 +934,7 @@ document.addEventListener('click', ()=>{ document.querySelectorAll('.dd-menu').f
 document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeDeal(); });
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>t.classList.remove('show'), 1800); }
 
-// ===== 启动 =====
-render();
+// ===== 启动（render 由 boot() 在数据加载完成后调用）=====
 </script>
 </body>
 </html>
