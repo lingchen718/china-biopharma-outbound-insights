@@ -53,9 +53,9 @@
   .f-reset:hover { text-decoration: underline; }
 
   main { max-width: 1480px; margin: 0 auto; padding: 20px 24px 60px; }
-  .page-title { margin: 4px 0 16px; }
+  .page-title { margin: 4px 0 16px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
   .page-title h2 { margin: 0; font-size: 20px; }
-  .page-title p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .page-title p { margin: 0; color: var(--muted); font-size: 13px; }
   .dimension-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; font-size: 11.5px; color: var(--muted); }
   .dimension-bar .seg { padding: 3px 9px; border: 1px solid var(--line); border-radius: 20px; }
 
@@ -262,7 +262,7 @@ const NAV = [
   ['pipeline','技术与管线 Modality & Pipeline'], ['therapy','治疗领域 Therapeutic Areas'], ['companies','交易参与方 Companies'],
   ['explorer','交易数据库 Transaction Explorer']
 ];
-const PAGE_EN = {overview:'Market Overview — Market performance, key events, core metrics and signals', landscape:'Deal Landscape — For the selected years, analyze deal count and upfront payment distribution across four dimensions: asset stage, modality, disease area, and deal type.', economics:'Deal Economics — Upfront, milestones, total value, disclosure rate and value distribution', pipeline:'Modality & Pipeline — Drug modality, mechanism, target, stage and technology momentum', therapy:'Therapeutic Areas — Deal activity and trends by disease area', companies:'Companies — Buyers, sellers, licensors, licensees and their deal records & ecosystem network', explorer:'Transaction Explorer — Search individual deals by company, asset, target, date and deal type'};
+const PAGE_EN = {overview:'Market performance, key events, core metrics and signals', landscape:'For the selected years, analyze deal count and upfront payment distribution across four dimensions: asset stage, modality, disease area, and deal type.', economics:'Upfront, milestones, total value, disclosure rate and value distribution', pipeline:'Drug modality, mechanism, target, stage and technology momentum', therapy:'Deal activity and trends by disease area', companies:'Buyers, sellers, licensors, licensees and their deal records & ecosystem network', explorer:'Search individual deals by company, asset, target, date and deal type'};
 const DIM_SEG = {overview:'市场分析', landscape:'市场分析', economics:'市场分析', pipeline:'交易内容分析', therapy:'交易内容分析', companies:'交易内容分析', explorer:'数据检索'};
 
 // ===== 过滤器栏 =====
