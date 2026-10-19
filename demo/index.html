@@ -582,7 +582,7 @@ function renderEconomics(deals){
 function renderPipeline(deals){
   main.innerHTML = title('技术与管线 Modality & Pipeline', PAGE_EN.pipeline) +
   `<div class="grid g2">
-    <div class="card"><h3>Modality</h3><p class="hint">ADC、双抗、细胞与基因疗法、小分子等药物形式的年度交易活跃度变化</p><div id="pl-mod" class="chart ch-lg"></div></div>
+    <div class="card"><h3>Modality Trends 技术趋势</h3><p class="hint">ADC、双抗、细胞与基因疗法、小分子等药物形式的年度交易活跃度变化</p><div id="pl-mod" class="chart ch-lg"></div></div>
     <div class="card"><h3>Target & Mechanism 靶点与机制</h3><p class="hint">热门靶点排名 + 靶点 × 药物形式热度矩阵</p>
       <div id="pl-target" class="chart" style="height:190px"></div>
       <div id="pl-tm" class="chart" style="height:150px"></div></div>
@@ -628,10 +628,10 @@ const AREA_HOTSPOTS = {Oncology:['肺癌 NSCLC','乳腺癌 Breast','卵巢癌 Ov
 function renderTherapy(deals){
   main.innerHTML = title('治疗领域 Therapeutic Areas', PAGE_EN.therapy) +
   `<div class="grid g2">
-    <div class="card"><h3>Area Trends 领域趋势</h3><p class="hint">各治疗领域的年度交易数量变化</p><div id="th-trend" class="chart ch-lg"></div></div>
+    <div class="card"><h3>Disease Area Trends 治疗趋势</h3><p class="hint">各治疗领域的年度交易数量变化</p><div id="th-trend" class="chart ch-lg"></div></div>
     <div class="card"><h3>Indication Hotspots 适应症热点</h3><p class="hint">各领域内热门具体适应症</p><div id="th-hot"></div></div>
   </div>
-  <div class="card" style="margin-top:14px"><h3>Area Deep Dive 领域深入分析</h3>
+  <div class="card" style="margin-top:14px"><h3>Deep Dive 深入分析</h3>
     <p class="hint">选择单个治疗领域，查看其药物形式、研发阶段、公司与交易结构</p>
     <div style="margin-bottom:10px"><select class="dd-btn" id="th-area">${INDS.map(i=>`<option ${i===therapyArea?'selected':''}>${i}</option>`).join('')}</select></div>
     <div class="grid g2"><div id="th-mod" class="chart ch-md"></div><div id="th-stage" class="chart ch-md"></div></div>
