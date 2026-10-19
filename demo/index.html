@@ -624,7 +624,6 @@ function renderEconomics(deals){
       <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">已披露首付款总额趋势 Total Disclosed Upfront Trend</div><div id="eco-up" class="chart" style="height:300px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-up-yoy"></div></div>
       <div><div style="font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px">潜在交易总额趋势 Total Potential Value Trend</div><div id="eco-tot" class="chart" style="height:300px"></div><div style="font-size:12px;color:var(--muted);margin-top:6px" id="eco-tot-yoy"></div></div>
     </div>
-    <div class="insight" id="eco-insight" style="margin-top:12px"></div>
   </div>
 
   <div class="card" style="margin-top:14px"><h3>金额分布 Deal Value Distribution</h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）。单位：US$M（百万美元）。Grouped by modality; unit: US$M (millions).</p><div id="ec-box" class="chart ch-md"></div></div>
@@ -648,7 +647,6 @@ function renderEconomics(deals){
   document.getElementById('eco-count-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'countYoY');
   document.getElementById('eco-up-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'upYoY');
   document.getElementById('eco-tot-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'totYoY');
-  document.getElementById('eco-insight').innerHTML = trendInsight(rows);
 
   // 箱线图
   const mods = MODS.map(m=>m.k).filter(m=>disc.some(d=>d.modality===m));
