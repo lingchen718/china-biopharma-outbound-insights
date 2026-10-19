@@ -575,7 +575,7 @@ function renderEconomics(deals){
     legend:{top:0, data:mods.map(m=>({name:labelOf('modality',m), icon:'circle'})), textStyle:{fontSize:11, color:'#cbd5e1'}, itemWidth:9, itemHeight:9},
     grid:{left:8,right:8,top:30,bottom:44,containLabel:true},
     xAxis:{type:'category', data:STAGES.map(s=>labelOf('stage',s)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}, splitLine:{show:true, lineStyle:{color:'#223047', type:'dashed'}}},
-    yAxis:{type:'log', ...AXIS, name:'$M', nameTextStyle:{color:'#8b9bb0'}, splitNumber:8},
+    yAxis:{type:'log', ...AXIS, name:'$M', nameTextStyle:{color:'#8b9bb0'}, splitNumber:10, minorSplitLine:{show:true, lineStyle:{color:'#1a2740', type:'dashed'}}},
     series:[{type:'scatter', data:bubbleData}]
   });
   // 里程碑 top
