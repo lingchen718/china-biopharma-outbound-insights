@@ -360,12 +360,12 @@ function kpiHtml(deals){
   const totalV = sum(disc.map(d=>d.total)), upfrontV = sum(disc.map(d=>d.upfront));
   const highest = disc.length ? Math.max(...disc.map(d=>d.total)) : 0;
   const items = [
-    ['交易笔数 Deals', fmtInt(deals.length), 'Total Deals'],
+    ['交易笔数 Total Deals', fmtInt(deals.length), 'Deals'],
     ['披露总额 Total Value', fmtM(totalV), 'Disclosed'],
-    ['最高单笔 Highest', fmtM(highest), 'Highest Deal'],
+    ['最高单笔 Highest Deal', fmtM(highest), 'Highest'],
     ['首付款 Upfront', fmtM(upfrontV), 'Upfront'],
-    ['中国授权方 Licensors', fmtInt(new Set(deals.map(d=>d.licensor)).size), 'Licensors'],
-    ['海外引进方 Overseas Licensee', fmtInt(new Set(deals.map(d=>d.licensee)).size), 'Overseas Licensee']
+    ['中国授权方 CN Licensors', fmtInt(new Set(deals.map(d=>d.licensor)).size), 'Licensors'],
+    ['海外引进方 Overseas Licensee', fmtInt(new Set(deals.map(d=>d.licensee)).size), 'Licensees']
   ];
   return `<div class="kpis">${items.map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}</div>`;
 }
