@@ -262,7 +262,7 @@ const NAV = [
   ['pipeline','技术与管线 Modality & Pipeline'], ['therapy','治疗领域 Therapeutic Areas'], ['companies','交易参与方 Companies'],
   ['explorer','交易数据库 Transaction Explorer']
 ];
-const PAGE_EN = {overview:'Market performance, key events, core metrics and signals', landscape:'For the selected years, analyze deal count and upfront payment distribution across four dimensions: asset stage, modality, disease area, and deal type.', economics:'Upfront, milestones, total value, disclosure rate and value distribution', pipeline:'Drug modality, mechanism, target, stage and technology momentum', therapy:'Deal activity and trends by disease area', companies:'Buyers, sellers, licensors, licensees and their deal records & ecosystem network', explorer:'Search individual deals by company, asset, target, date and deal type'};
+const PAGE_EN = {overview:'Market performance, key events, core metrics and signals', landscape:'Deal count and upfront payment distribution across four dimensions: asset stage, modality, disease area, and deal type.', economics:'Upfront, milestones, total value, disclosure rate and value distribution', pipeline:'Drug modality, mechanism, target, stage and technology momentum', therapy:'Deal activity and trends by disease area', companies:'Licensors, licensees and their deal records & ecosystem network', explorer:'Search individual deals by company, asset, target, date and deal type'};
 const DIM_SEG = {overview:'市场分析', landscape:'市场分析', economics:'市场分析', pipeline:'交易内容分析', therapy:'交易内容分析', companies:'交易内容分析', explorer:'数据检索'};
 
 // ===== 过滤器栏 =====
@@ -365,7 +365,7 @@ function kpiHtml(deals){
     ['最高单笔 Highest', fmtM(highest), 'Highest Deal'],
     ['首付款 Upfront', fmtM(upfrontV), 'Upfront'],
     ['中国授权方 Licensors', fmtInt(new Set(deals.map(d=>d.licensor)).size), 'Licensors'],
-    ['海外对手方 Counterparties', fmtInt(new Set(deals.map(d=>d.licensee)).size), 'Counterparties']
+    ['海外引进方 Overseas Licensee', fmtInt(new Set(deals.map(d=>d.licensee)).size), 'Overseas Licensee']
   ];
   return `<div class="kpis">${items.map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}</div>`;
 }
@@ -418,7 +418,7 @@ function dealTableHtml(deals){
     <td>${tagHtml(modColor(d.modality), labelOf('modality',d.modality))}</td>
     <td>${labelOf('indication',d.indication)}</td><td>${labelOf('stage',d.stage)}</td>
     <td>${labelOf('dealType',d.dealType)}</td><td class="num">${fmtM(d.upfront)}</td><td class="num">${fmtM(d.total)}</td></tr>`).join('');
-  return `<table class="tbl"><thead><tr><th>日期</th><th>中国授权方</th><th>海外对手方</th><th>资产</th><th>药物形式</th><th>治疗领域</th><th>研发阶段</th><th>交易类型</th><th>首付款</th><th>潜在总额</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table class="tbl"><thead><tr><th>日期 Date</th><th>中国授权方 Licensor</th><th>海外引进方 Licensee</th><th>资产 Asset</th><th>药物形式 Modality</th><th>治疗领域 Therapeutic Area</th><th>研发阶段 Stage</th><th>交易类型 Deal Type</th><th>首付款 Upfront</th><th>潜在总额 Total Value</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 function wireSwitch(elId, labels, active, cb){
   const el=document.getElementById(elId);
@@ -429,8 +429,7 @@ function wireSwitch(elId, labels, active, cb){
 // ===== 页面渲染 =====
 const main = document.getElementById('main');
 function title(zh, en){
-  return `<div class="dimension-bar"><span class="seg" style="color:var(--accent);border-color:var(--accent)">${DIM_SEG[state.page]}</span></div>
-  <div class="page-title"><h2>${zh}</h2><p>${en}</p></div>`;
+  return `<div class="page-title"><h2>${zh}</h2><p>${en}</p></div>`;
 }
 
 let ovMetric='count', ovDim='modality';
@@ -438,7 +437,7 @@ function renderOverview(deals){
   const recent = deals.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
   main.innerHTML = title('市场概览 Overview', PAGE_EN.overview) + kpiHtml(deals) +
   `<div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>交易活跃度趋势 Deal Activity</h3>
+    <div class="card"><h3>交易活跃度趋势 Deal Activity Trends</h3>
       <div class="metric-switch" id="ov-metric"></div><div class="dim-switch" id="ov-dim"></div>
       <div id="ov-trend" class="chart ch-md"></div></div>
     <div class="card"><h3>全球足迹 · Destination of Chinese Biopharma Assets</h3><p class="hint">中国资产出海目的地；按授权区域（territory）展示，点击后以区域（region）筛选</p><div id="ov-map" class="chart ch-md"></div></div>
@@ -475,13 +474,12 @@ function keyInsight(deals, dim){
 
 function renderLandscape(deals){
   const dims = [
-    {key:'stage', t:'By Asset Stage', q:'Which development stage are the deal assets in? Reflects risk appetite and asset maturity.', color:STAGE_COLORS},
-    {key:'modality', t:'By Modality', q:'Which drug modalities attract more deal attention and upfront payments?', color:Object.fromEntries(MODS.map(m=>[m.k,m.c]))},
-    {key:'indication', t:'By Disease Area', q:'Where is deal activity concentrated by disease area?', color:IND_COLORS},
-    {key:'dealType', t:'By Deal Type', q:'What kinds of deals are happening?', color:DTYPE_COLORS}
+    {key:'stage', t:'按研发阶段 By Asset Stage', q:'Which development stage are the deal assets in? Reflects risk appetite and asset maturity.', color:STAGE_COLORS},
+    {key:'modality', t:'按技术类型 By Modality', q:'Which drug modalities attract more deal attention and upfront payments?', color:Object.fromEntries(MODS.map(m=>[m.k,m.c]))},
+    {key:'indication', t:'按治疗领域 By Therapeutic Area', q:'Where is deal activity concentrated by disease area?', color:IND_COLORS},
+    {key:'dealType', t:'按交易类型 By Deal Type', q:'What kinds of deals are happening?', color:DTYPE_COLORS}
   ];
   main.innerHTML = title('交易格局 Deal Landscape', PAGE_EN.landscape) +
-    `<div class="card" style="margin-bottom:14px"><p class="hint" style="margin:0">Core question: <b>For the selected years, analyze deal count and upfront payment distribution across four dimensions: asset stage, modality, disease area, and deal type.</b></p></div>` +
     `<div class="grid g2">${dims.map((d,i)=>`
       <div class="card"><h3>${d.t}</h3><p class="hint">${d.q}</p>
         <div class="duo">
@@ -513,29 +511,32 @@ function renderEconomics(deals){
   const totalV = sum(deals.filter(d=>d.disclosed).map(d=>d.total));
   const upCov = Math.round(nDisc/deals.length*100);
   const derivable = deals.filter(d=>d.milestoneDerivable && d.milestone>0);
+  const colorLegend = MODS.map(m=>`<span style="display:inline-flex;align-items:center;gap:4px"><i style="width:10px;height:10px;border-radius:50%;background:${m.c}"></i>${m.k}</span>`).join('');
 
   main.innerHTML = title('交易金额 Deal Economics', PAGE_EN.economics) +
   `<div class="kpis" style="grid-template-columns:repeat(5,1fr)">
-    ${[ ['已披露首付款笔数 Deals', fmtInt(nDisc)+' / '+fmtInt(deals.length), upCov+'% coverage'],
-        ['Total Disclosed Upfront', fmtM(totalUp), 'US$M'],
-        ['Median Upfront', fmtM(medianUp), 'US$M / deal'],
-        ['已披露总额笔数 Deals', fmtInt(nDisc)+' / '+fmtInt(deals.length), upCov+'% coverage'],
-        ['Total Potential Value', fmtM(totalV), 'US$M'] ]
+    ${[ ['已披露首付款笔数 Deals with Disclosed Upfronts', fmtInt(nDisc)+' / '+fmtInt(deals.length), upCov+'% coverage'],
+        ['已披露首付款总额 Total Disclosed Upfront', fmtM(totalUp), 'US$M'],
+        ['已披露首付款中位数 Median Upfront', fmtM(medianUp), 'US$M / deal'],
+        ['已披露总额笔数 Total Disclosed Deals', fmtInt(nDisc)+' / '+fmtInt(deals.length), upCov+'% coverage'],
+        ['Total Potential Value 潜在总额', fmtM(totalV), 'US$M'] ]
       .map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}
   </div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>Deal Value Distribution</h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）</p><div id="ec-box" class="chart ch-md"></div></div>
-    <div class="card"><h3>Value Disclosure</h3><p class="hint">披露率反映金额是否可知，而非金额是否大于 0</p><div id="ec-disc" class="chart ch-md"></div></div>
+    <div class="card"><h3>金额分布 Deal Value Distribution</h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）</p><div id="ec-box" class="chart ch-md"></div></div>
+    <div class="card"><h3>披露率 Value Disclosure Rate</h3><p class="hint">披露率反映金额是否可知，而非金额是否大于 0</p><div id="ec-disc" class="chart ch-md"></div></div>
   </div>
 
-  <div class="card" style="margin-top:14px"><h3>Deal Economics Explorer — Transaction-level Economics</h3>
-    <p class="hint">Explore how deal economics vary by asset stage, modality and deal structure.<br/>Each bubble represents one deal. The vertical position shows total potential value on a logarithmic scale; bubble area represents upfront payment. Color indicates modality, while shape indicates deal type. Undisclosed values are distinguished from zero values.</p>
-    <div class="size-legend"><span style="color:var(--ink-2)">气泡面积 = 首付款：</span><span><i style="width:10px;height:10px"></i>$10M</span><span><i style="width:17px;height:17px"></i>$50M</span><span><i style="width:32px;height:32px"></i>$200M</span><span style="margin-left:auto">仅含已披露交易，点击气泡查看详情</span></div>
+  <div class="card" style="margin-top:14px"><h3>交易金额探索 Deal Economics Explorer — Transaction-level Economics</h3>
+    <p class="hint" style="line-height:1.75">Explore how deal economics vary by asset stage, modality and deal structure.<br/>Each bubble represents one deal.<br/>The vertical position shows total potential value on a logarithmic scale.<br/>Bubble area represents upfront payment.<br/>Color indicates modality, while shape indicates deal type.<br/>Undisclosed values are distinguished from zero values.</p>
+    <div class="size-legend"><span style="color:var(--ink-2)">气泡面积 Bubble area = 首付款 Upfront：</span><span><i style="width:10px;height:10px"></i>$10M</span><span><i style="width:17px;height:17px"></i>$50M</span><span><i style="width:32px;height:32px"></i>$200M</span></div>
+    <div class="size-legend"><span style="color:var(--ink-2)">颜色 Color = 药物形式 Modality：</span>${colorLegend}</div>
+    <div class="size-legend"><span style="color:var(--ink-2)">形状 Shape = 交易类型 Deal Type：</span><span>● License-out</span><span>◆ Co-development</span><span>▲ Asset transfer</span><span>■ Non-exclusive</span><span>▭ Option</span><span>📌 M&A</span><span>↑ JV</span><span>■ Other</span></div>
     <div id="ec-bubble" class="chart ch-lg"></div></div>
 
-  <div class="card" style="margin-top:14px"><h3>Milestone Analysis — Largest Disclosed Milestone Packages</h3>
-    <p class="hint">仅当首付款与潜在总额对价范围一致、可拆分时按 total − upfront 派生；含股权/分成等无法拆分的交易标记为 Not Derivable。</p>
+  <div class="card" style="margin-top:14px"><h3>里程碑分析 Milestone Analysis — Largest Disclosed Milestone Packages</h3>
+    <p class="hint">Derived as total − upfront only when the consideration is consistent and separable; deals with equity/royalty components are marked Not Derivable.</p>
     <div id="ec-milestone"></div></div>`;
 
   // 箱线图
@@ -573,9 +574,9 @@ function renderEconomics(deals){
   });
   // 里程碑 top
   const topM = derivable.sort((a,b)=>b.milestone-a.milestone).slice(0,10);
-  document.getElementById('ec-milestone').innerHTML = `<table class="tbl"><thead><tr><th>资产</th><th>中国授权方</th><th>海外对手方</th><th>首付款</th><th>潜在总额</th><th>里程碑（派生）</th></tr></thead><tbody>
+  document.getElementById('ec-milestone').innerHTML = `<table class="tbl"><thead><tr><th>资产 Asset</th><th>中国授权方 Licensor</th><th>海外引进方 Licensee</th><th>首付款 Upfront</th><th>潜在总额 Total Value</th><th>里程碑（派生） Milestone (Derived)</th></tr></thead><tbody>
     ${topM.map(d=>`<tr onclick="openDeal('${d.id}')"><td>${d.asset}</td><td>${d.licensor}</td><td>${d.licensee}</td><td class="num">${fmtM(d.upfront)}</td><td class="num">${fmtM(d.total)}</td><td class="num" style="color:var(--accent);font-weight:600">${fmtM(d.milestone)}</td></tr>`).join('')}
-  </tbody></table><div class="hint" style="margin-top:10px">Not Derivable（含股权/分成等无法拆分对价）：<b>${deals.filter(d=>d.disclosed && !d.milestoneDerivable).length}</b> 笔已披露交易未纳入里程碑榜单。</div>`;
+  </tbody></table><div class="hint" style="margin-top:10px">Not Derivable (deals with equity/royalty components that cannot be split): <b>${deals.filter(d=>d.disclosed && !d.milestoneDerivable).length}</b> disclosed deals excluded from the milestone ranking.</div>`;
 }
 
 // ===== 技术与管线 =====
@@ -616,7 +617,7 @@ function renderPipeline(deals){
   const assets={}; deals.forEach(d=>{ if(!assets[d.asset]) assets[d.asset]={asset:d.asset, target:d.target, modality:d.modality, indication:d.indication, licensor:d.licensor, stage:d.stage, total:0, n:0}; const a=assets[d.asset]; a.n++; if(d.disclosed) a.total=Math.max(a.total,d.total); });
   const si=s=>STAGES.indexOf(s);
   const alist=Object.values(assets).sort((a,b)=>si(b.stage)-si(a.stage)||b.total-a.total).slice(0,14);
-  document.getElementById('pl-assets').innerHTML = `<table class="tbl"><thead><tr><th>资产</th><th>药物形式</th><th>靶点</th><th>治疗领域</th><th>研发阶段</th><th>中国授权方</th><th>潜在总额</th><th>交易笔数</th></tr></thead><tbody>
+  document.getElementById('pl-assets').innerHTML = `<table class="tbl"><thead><tr><th>资产 Asset</th><th>药物形式 Modality</th><th>靶点 Target</th><th>治疗领域 Therapeutic Area</th><th>研发阶段 Stage</th><th>中国授权方 Licensor</th><th>潜在总额 Total Value</th><th>交易笔数 Deals</th></tr></thead><tbody>
     ${alist.map(a=>`<tr onclick="state.page='explorer';state.search='${a.asset}';render();"><td>${a.asset}</td><td>${tagHtml(modColor(a.modality), labelOf('modality',a.modality))}</td><td>${a.target}</td><td>${labelOf('indication',a.indication)}</td><td>${labelOf('stage',a.stage)}</td><td>${a.licensor}</td><td class="num">${fmtM(a.total)}</td><td class="num">${a.n}</td></tr>`).join('')}
   </tbody></table>`;
 }
@@ -638,7 +639,7 @@ function renderTherapy(deals){
     <div id="th-co" style="margin-top:10px"></div></div>`;
 
   mount('th-trend', buildTrend(deals, 'count', 'indication'));
-  document.getElementById('th-hot').innerHTML = `<table class="tbl"><thead><tr><th>治疗领域</th><th>交易笔数</th><th>热门具体适应症</th></tr></thead><tbody>
+  document.getElementById('th-hot').innerHTML = `<table class="tbl"><thead><tr><th>治疗领域 Therapeutic Area</th><th>交易笔数 Deals</th><th>热门具体适应症 Indication Hotspots</th></tr></thead><tbody>
     ${INDS.map(i=>{ const n=deals.filter(d=>d.indication===i).length; return `<tr><td>${labelOf('indication',i)}</td><td class="num">${n}</td><td>${(AREA_HOTSPOTS[i]||[]).map(h=>tagHtml('#334155',h)).join(' ')}</td></tr>`; }).join('')}
   </tbody></table>`;
   document.getElementById('th-area').onchange = e=>{ therapyArea=e.target.value; render(); };
@@ -648,12 +649,12 @@ function renderTherapy(deals){
   mount('th-stage', barOption(sub, 'stage', STAGE_COLORS));
   const co={}; sub.forEach(d=>{ if(!co[d.licensor]) co[d.licensor]={n:0,total:0}; co[d.licensor].n++; if(d.disclosed) co[d.licensor].total+=d.total; });
   const coRows=Object.entries(co).sort((a,b)=>b[1].n-a[1].n).slice(0,10);
-  document.getElementById('th-co').innerHTML = `<table class="tbl"><thead><tr><th>中国授权方（${labelOf('indication',therapyArea)}）</th><th>交易笔数</th><th>披露总额</th></tr></thead><tbody>${coRows.map(([k,v])=>`<tr><td>${k}</td><td class="num">${v.n}</td><td class="num">${fmtM(v.total)}</td></tr>`).join('')}</tbody></table>`;
+  document.getElementById('th-co').innerHTML = `<table class="tbl"><thead><tr><th>中国授权方 Licensor（${labelOf('indication',therapyArea)}）</th><th>交易笔数 Deals</th><th>披露总额 Disclosed Value</th></tr></thead><tbody>${coRows.map(([k,v])=>`<tr><td>${k}</td><td class="num">${v.n}</td><td class="num">${fmtM(v.total)}</td></tr>`).join('')}</tbody></table>`;
 }
 
 // ===== 交易参与方（含生态网络方块）=====
 let coSort='deals', coSort2='deals';
-const SORT_LABELS = {deals:'交易笔数', total:'披露总额', median:'中位数金额', mods:'药物形式数', inds:'治疗领域数'};
+const SORT_LABELS = {deals:'交易笔数 Deals', total:'披露总额 Disclosed Value', median:'中位数金额 Median', mods:'药物形式数 Modalities', inds:'治疗领域数 Therapeutic Areas'};
 
 function companyStats(deals, key){
   const map=new Map();
@@ -667,8 +668,8 @@ function sortCompanies(arr, sort){
   return arr.slice().sort((a,b)=>b[key]-a[key]);
 }
 function leaderTableHtml(rows, sort){
-  return `<select class="dd-btn" onchange="__companySort(this)">${Object.entries(SORT_LABELS).map(([k,l])=>`<option value="${k}" ${sort===k?'selected':''}>排序：${l}</option>`).join('')}</select>
-  <table class="tbl"><thead><tr><th>公司</th><th>交易</th><th>披露总额</th><th>中位数</th><th>药物形式</th><th>治疗领域</th></tr></thead><tbody>
+  return `<select class="dd-btn" onchange="__companySort(this)">${Object.entries(SORT_LABELS).map(([k,l])=>`<option value="${k}" ${sort===k?'selected':''}>Sort by: ${l}</option>`).join('')}</select>
+  <table class="tbl"><thead><tr><th>公司 Company</th><th>交易 Deals</th><th>披露总额 Disclosed Value</th><th>中位数 Median</th><th>药物形式 Modality</th><th>治疗领域 Therapeutic Area</th></tr></thead><tbody>
   ${rows.slice(0,12).map(r=>`<tr><td>${r.name}</td><td class="num">${r.deals}</td><td class="num">${fmtM(r.total)}</td><td class="num">${fmtM(r.median)}</td><td class="num">${r.mods}</td><td class="num">${r.inds}</td></tr>`).join('')}
   </tbody></table>`;
 }
@@ -698,9 +699,9 @@ function renderCompanies(deals){
   main.innerHTML = title('交易参与方 Companies', PAGE_EN.companies) +
   `<div class="leader">
     <div class="side card"><h3>中国授权方 Licensors</h3><p class="hint">不做武断排名，可按多指标切换排序</p><div id="co-cn"></div></div>
-    <div class="side card"><h3>海外对手方 Counterparties</h3><p class="hint">与中国交易的海外公司</p><div id="co-os"></div></div>
+    <div class="side card"><h3>海外引进方 Overseas Licensee</h3><p class="hint">与中国交易的海外公司</p><div id="co-os"></div></div>
   </div>
-  <div class="card" style="margin-top:14px"><h3>公司 × 药物形式（气泡 = 笔数）</h3><p class="hint">Top 中国授权方</p><div id="co-bubble" class="chart ch-md"></div></div>
+  <div class="card" style="margin-top:14px"><h3>公司 × 药物形式 Company × Modality</h3><p class="hint">气泡大小 = 交易笔数；颜色 = 药物形式（与全站配色一致）。Bubble size = deal count; color = modality.</p><div id="co-bubble" class="chart ch-md"></div></div>
   <div class="card" style="margin-top:14px"><h3>生态网络 Network</h3><p class="hint">节点=公司（<span style="color:#2dd4bf">● 中国</span> / <span style="color:#60a5fa">● 海外</span>），大小=交易笔数，连线=交易；可拖拽/缩放，点击节点查看公司档案</p><div id="co-net" class="chart" style="height:440px"></div></div>`;
   document.getElementById('co-cn').innerHTML = leaderTableHtml(cnSorted, coSort);
   document.getElementById('co-os').innerHTML = leaderTableHtml(osSorted, coSort2);
