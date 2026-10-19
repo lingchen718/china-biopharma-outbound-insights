@@ -1,1 +1,4 @@
 .DS_Store
+
+# SQLite local database (generated, not committed)
+*.db
