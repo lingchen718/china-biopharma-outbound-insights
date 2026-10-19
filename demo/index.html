@@ -526,7 +526,7 @@ function renderEconomics(deals){
         ['已披露首付款总额 Total Disclosed Upfront', fmtM(totalUp), 'US$M'],
         ['已披露首付款中位数 Median Upfront', fmtM(medianUp), 'US$M / deal'],
         ['已披露总额笔数 Total Disclosed Deals', fmtInt(nDisc)+' / '+fmtInt(deals.length), upCov+'% coverage'],
-        ['Total Potential Value 潜在总额', fmtM(totalV), 'US$M'] ]
+        ['潜在总额 Total Potential Value', fmtM(totalV), 'US$M'] ]
       .map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}
   </div>
 
