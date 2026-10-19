@@ -539,7 +539,7 @@ function renderEconomics(deals){
     <div class="size-legend"><span style="color:var(--ink-2)">气泡面积 Bubble area = 首付款 Upfront：</span><span><i style="width:10px;height:10px"></i>$10M</span><span><i style="width:17px;height:17px"></i>$50M</span><span><i style="width:32px;height:32px"></i>$200M</span></div>
     <div class="size-legend"><span style="color:var(--ink-2)">颜色 Color = 药物形式 Modality：</span>${colorLegend}</div>
     <div class="size-legend"><span style="color:var(--ink-2)">形状 Shape = 交易类型 Deal Type：</span><span>● License-out</span><span>◆ Co-development</span><span>▲ Asset transfer</span><span>■ Non-exclusive</span><span>▭ Option</span><span>📌 M&A</span><span>↑ JV</span><span>■ Other</span></div>
-    <div id="ec-bubble" class="chart" style="height:480px"></div></div>
+    <div id="ec-bubble" class="chart" style="height:560px"></div></div>
 
   <div class="card" style="margin-top:14px"><h3>里程碑分析 Milestone Analysis — Largest Disclosed Milestone Packages</h3>
     <p class="hint">Derived as total − upfront only when the consideration is consistent and separable; deals with equity/royalty components are marked Not Derivable.</p>
@@ -573,9 +573,9 @@ function renderEconomics(deals){
     tooltip:{...TOOLTIP_DARK, formatter:p=>{const d=p.data._d;
       return `<b>${d.licensor} × ${d.licensee}</b><br/>${labelOf('dealType',d.dealType)} · ${d.date}<br/><br/>Total Potential Value：<b>${fmtM(d.total)}</b><br/>Upfront Payment：<b>${fmtM(d.upfront)}</b><br/>Milestone：${d.milestoneDerivable?fmtM(d.milestone):'Not Derivable'}<br/><br/>Asset：${d.asset} · ${labelOf('indication',d.indication)}<br/>Modality：${labelOf('modality',d.modality)} · Stage：${labelOf('stage',d.stage)}<br/>Region：${d.country}（${labelOf('region',d.region)}）`; }},
     legend:{top:0, data:mods.map(m=>({name:labelOf('modality',m), icon:'circle'})), textStyle:{fontSize:11, color:'#cbd5e1'}, itemWidth:9, itemHeight:9},
-    grid:{left:8,right:8,top:30,bottom:8,containLabel:true},
-    xAxis:{type:'category', data:STAGES.map(s=>labelOf('stage',s)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
-    yAxis:{type:'log', ...AXIS, name:'$M', nameTextStyle:{color:'#8b9bb0'}},
+    grid:{left:8,right:8,top:30,bottom:44,containLabel:true},
+    xAxis:{type:'category', data:STAGES.map(s=>labelOf('stage',s)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}, splitLine:{show:true, lineStyle:{color:'#223047', type:'dashed'}}},
+    yAxis:{type:'log', ...AXIS, name:'$M', nameTextStyle:{color:'#8b9bb0'}, splitNumber:8},
     series:[{type:'scatter', data:bubbleData}]
   });
   // 里程碑 top
