@@ -571,7 +571,7 @@ function trendBarOption(rows, metric, color, gran){
     }},
     grid:{left:8,right:20,top: byYear?46:34, bottom:8, containLabel:true},
     xAxis:{type:'category', data:rows.map(r=>r.label), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate: rows.length>6?45:0, interval}},
-    yAxis:{type:'value', ...AXIS, name: metric==='count'?'Deals':'US$', nameTextStyle:{color:'#8b9bb0'}, nameGap:12},
+    yAxis:{type:'value', ...AXIS, name: metric==='count'?'Deals':'US$M', nameTextStyle:{color:'#8b9bb0'}, nameGap:12},
     series:[{type:'bar', barMaxWidth:34, data:rows.map(r=>({value:r[valKey], itemStyle:{color:colorFor(r), borderRadius:[4,4,0,0]}, _r:r}))}]
   };
   if(byYear){
