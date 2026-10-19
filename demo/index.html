@@ -635,11 +635,11 @@ const AREA_HOTSPOTS = {Oncology:['肺癌 NSCLC','乳腺癌 Breast','卵巢癌 Ov
 function renderTherapy(deals){
   main.innerHTML = title('治疗领域 Therapeutic Areas', PAGE_EN.therapy) +
   `<div class="grid g2">
-    <div class="card"><h3>Disease Area Trends 治疗趋势</h3><p class="hint">各治疗领域的年度交易数量变化</p><div id="th-trend" class="chart ch-lg"></div></div>
-    <div class="card"><h3>Indication Hotspots 适应症热点</h3><p class="hint">各领域内热门具体适应症</p><div id="th-hot"></div></div>
+    <div class="card"><h3>治疗趋势 Disease Area Trends</h3><p class="hint">各治疗领域的年度交易数量变化。Annual deal count trends by therapeutic area.</p><div id="th-trend" class="chart ch-lg"></div></div>
+    <div class="card"><h3>适应症热点 Indication Hotspots</h3><p class="hint">各领域内热门具体适应症。Hot specific indications within each area.</p><div id="th-hot"></div></div>
   </div>
-  <div class="card" style="margin-top:14px"><h3>Deep Dive 深入分析</h3>
-    <p class="hint">选择单个治疗领域，查看其药物形式、研发阶段、公司与交易结构</p>
+  <div class="card" style="margin-top:14px"><h3>深入分析 Deep Dive</h3>
+    <p class="hint">选择单个治疗领域，查看其药物形式、研发阶段、公司与交易结构。Select one therapeutic area to explore its modality, stage, companies and deal structure.</p>
     <div style="margin-bottom:10px"><select class="dd-btn" id="th-area">${INDS.map(i=>`<option ${i===therapyArea?'selected':''}>${i}</option>`).join('')}</select></div>
     <div class="grid g2"><div id="th-mod" class="chart ch-md"></div><div id="th-stage" class="chart ch-md"></div></div>
     <div id="th-co" style="margin-top:10px"></div></div>`;
