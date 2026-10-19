@@ -611,13 +611,14 @@ function renderPipeline(deals){
   // 靶点 × 药物形式 热力
   const tm=[]; const topTgt=tdata.slice(0,8).map(x=>x[0]);
   MODS.forEach((m,xi)=>topTgt.forEach((tg,yi)=>{ const n=deals.filter(d=>d.modality===m.k&&d.target===tg).length; if(n>0) tm.push([xi, topTgt.length-1-yi, n]); }));
+  const tmMax = Math.max(1,...tm.map(d=>d[2]));
   mount('pl-tm', {
     tooltip:{...TOOLTIP_DARK, formatter:p=>`${labelOf('modality',MODS[p.value[0]].k)} × ${topTgt[topTgt.length-1-p.value[1]]}<br/>交易：<b>${p.value[2]}</b>`},
     grid:{left:8,right:8,top:8,bottom:8,containLabel:true},
     xAxis:{type:'category', data:MODS.map(m=>labelOf('modality',m.k)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:20}},
     yAxis:{type:'category', data:topTgt.slice().reverse(), ...AXIS},
-    visualMap:{min:0, max:Math.max(1,...tm.map(d=>d[2])), show:false, inRange:{color:['#0d2f2b','#2dd4bf']}},
-    series:[{type:'heatmap', data:tm, label:{show:true, color:'#e6edf3', fontSize:10}}]
+    visualMap:{min:0, max:tmMax, show:false, inRange:{color:['#fecaca','#b91c1c']}},
+    series:[{type:'heatmap', data:tm, label:{show:true, fontSize:10, color: p=>p.value[2] >= tmMax/2 ? '#fff' : '#7f1d1d'}}]
   });
   // 资产管线表
   const assets={}; deals.forEach(d=>{ if(!assets[d.asset]) assets[d.asset]={asset:d.asset, target:d.target, modality:d.modality, indication:d.indication, licensor:d.licensor, stage:d.stage, total:0, n:0}; const a=assets[d.asset]; a.n++; if(d.disclosed) a.total=Math.max(a.total,d.total); });
