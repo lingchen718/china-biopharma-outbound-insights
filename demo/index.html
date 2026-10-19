@@ -481,7 +481,7 @@ function keyInsight(deals, dim){
 
 function renderLandscape(deals){
   const dims = [
-    {key:'stage', t:'按研发阶段 By Asset Stage', q:'Which development stage are the deal assets in? Reflects risk appetite and asset maturity.', color:STAGE_COLORS},
+    {key:'stage', t:'按研发阶段 By Asset Stage', q:'At what development stage are the deal assets at signing? This shows whether the market favors early-stage assets or late-stage, near-commercial assets — reflecting risk appetite and asset maturity.', color:STAGE_COLORS},
     {key:'modality', t:'按技术类型 By Modality', q:'Which drug modalities attract more deal attention and upfront payments?', color:Object.fromEntries(MODS.map(m=>[m.k,m.c]))},
     {key:'indication', t:'按治疗领域 By Therapeutic Area', q:'Where is deal activity concentrated by disease area?', color:IND_COLORS},
     {key:'dealType', t:'按交易类型 By Deal Type', q:'What kinds of deals are happening?', color:DTYPE_COLORS}
