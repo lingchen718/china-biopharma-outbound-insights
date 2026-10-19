@@ -589,13 +589,13 @@ function renderEconomics(deals){
 function renderPipeline(deals){
   main.innerHTML = title('技术与管线 Modality & Pipeline', PAGE_EN.pipeline) +
   `<div class="grid g2">
-    <div class="card"><h3>技术趋势 Modality Trends</h3><p class="hint">ADC、双抗、细胞与基因疗法、小分子等药物形式的年度交易活跃度变化</p><div id="pl-mod" class="chart ch-lg"></div></div>
-    <div class="card"><h3>靶点与机制 Target & Mechanism</h3><p class="hint">热门靶点排名 + 靶点 × 药物形式热度矩阵</p>
+    <div class="card"><h3>技术趋势 Modality Trends</h3><p class="hint">ADC、双抗、细胞与基因疗法、小分子等药物形式的年度交易活跃度变化。Annual deal activity by modality: ADC, bispecific, cell & gene therapy, small molecule and more.</p><div id="pl-mod" class="chart ch-lg"></div></div>
+    <div class="card"><h3>靶点与机制 Target & Mechanism</h3><p class="hint">热门靶点排名 + 靶点 × 药物形式热度矩阵。Hot target ranking and target × modality heatmap.</p>
       <div id="pl-target" class="chart" style="height:190px"></div>
       <div id="pl-tm" class="chart" style="height:150px"></div></div>
   </div>
   <div class="card" style="margin-top:14px"><h3>资产管线 Asset Pipeline</h3>
-    <p class="hint">代表性资产的研发阶段、临床进展与交易事件。注意：交易数量 ≠ 临床成功率，不能仅凭交易量增加得出研发成功率更高的结论。</p>
+    <p class="hint">代表性资产的研发阶段、临床进展与交易事件。注意：交易数量 ≠ 临床成功率，不能仅凭交易量增加得出研发成功率更高的结论。Representative assets by stage, clinical progress and deal events. Note: deal count does not equal clinical success rate.</p>
     <div id="pl-assets"></div></div>`;
 
   mount('pl-mod', buildTrend(deals, 'count', 'modality'));
