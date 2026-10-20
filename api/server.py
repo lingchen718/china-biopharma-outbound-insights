@@ -145,7 +145,7 @@ def ep_economics_distribution():
     raw = rows("SELECT modality, total_value_musd v FROM deals WHERE has_total=1")
     g = {}
     for r in raw: g.setdefault(r["modality"], []).append(r["v"])
-    return {"boxplot": [{"modality": k, "q": quartiles(v)} for k,v in sorted(g.items())]}
+    return {"boxplot": [{"modality": k, "n": len(v), "q": quartiles(v)} for k,v in sorted(g.items())]}
 
 def ep_economics_bubble():
     return {"deals": [boolify(r) for r in rows(

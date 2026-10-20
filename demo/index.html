@@ -664,14 +664,19 @@ function renderEconomics(deals){
   document.getElementById('eco-up-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'upYoY');
   document.getElementById('eco-tot-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'totYoY');
 
-  // 箱线图
+  // 箱线图（x 轴标注样本量 n，tooltip 显示五数概括）
   const mods = MODS.map(m=>m.k).filter(m=>disc.some(d=>d.modality===m));
+  const modNs = mods.map(m=>({m, n: disc.filter(d=>d.modality===m).length}));
   mount('ec-box', {
-    tooltip:{...TOOLTIP_DARK, trigger:'item'},
+    tooltip:{...TOOLTIP_DARK, trigger:'item', formatter: ps=>{
+      const x = modNs[ps[0].dataIndex];
+      const q = quartiles(disc.filter(d=>d.modality===x.m).map(d=>d.total));
+      return `${labelOf('modality',x.m)}（n=${x.n}）<br/>Min: ${fmtM(q[0])}<br/>Q1: ${fmtM(q[1])}<br/>Median: ${fmtM(q[2])}<br/>Q3: ${fmtM(q[3])}<br/>Max: ${fmtM(q[4])}`;
+    }},
     grid:{left:8,right:8,top:24,bottom:8,containLabel:true},
-    xAxis:{type:'category', data:mods.map(m=>labelOf('modality',m)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    xAxis:{type:'category', data:modNs.map(x=>`${labelOf('modality',x.m)} (n=${x.n})`), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'value', ...AXIS, name:'US$M', nameTextStyle:{color:'#8b9bb0'}},
-    series:[{type:'boxplot', data:mods.map(m=>quartiles(disc.filter(d=>d.modality===m).map(d=>d.total))), itemStyle:{color:'#facc15', borderColor:'#fde047'}, boxWidth:[12,28]}]
+    series:[{type:'boxplot', data:modNs.map(x=>quartiles(disc.filter(d=>d.modality===x.m).map(d=>d.total))), itemStyle:{color:'#facc15', borderColor:'#fde047'}, boxWidth:[12,28]}]
   });
   // 气泡图（面积映射首付款 + jitter）
   const bubbleData = disc.map((d,idx)=>({
