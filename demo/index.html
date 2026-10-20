@@ -14,9 +14,9 @@
     --ink: #e6edf3;
     --ink-2: #cbd5e1;
     --muted: #8b9bb0;
-    --accent: #ef4444;
-    --accent-2: #f87171;
-    --accent-soft: #3f0d0d;
+    --accent: #facc15;
+    --accent-2: #fde047;
+    --accent-soft: #3d3300;
     --radius: 14px;
     --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.35);
   }
@@ -30,13 +30,13 @@
   .topbar { position: sticky; top: 0; z-index: 40; background: rgba(13,19,34,.92); backdrop-filter: saturate(150%) blur(8px); border-bottom: 1px solid var(--line); }
   .topbar-inner { max-width: 1480px; margin: 0 auto; padding: 12px 24px 10px; display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
   .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-  .brand .logo { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 10px; background: linear-gradient(135deg, var(--accent), #f97316); color: #ffffff; display: grid; place-items: center; font-weight: 800; font-size: 16px; }
+  .brand .logo { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 10px; background: linear-gradient(135deg, var(--accent), #f59e0b); color: #1c1700; display: grid; place-items: center; font-weight: 800; font-size: 16px; }
   .brand h1 { font-size: 16px; margin: 0; letter-spacing: .2px; white-space: nowrap; }
   .brand p { margin: 2px 0 0; font-size: 11px; color: var(--muted); white-space: nowrap; }
   .nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-start; }
   .nav button { border: 0; background: transparent; color: var(--ink-2); padding: 8px 12px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 700; white-space: nowrap; }
   .nav button:hover { background: #16233b; color: var(--ink); }
-  .nav button.active { background: var(--accent); color: #ffffff; font-weight: 700; }
+  .nav button.active { background: var(--accent); color: #1c1700; font-weight: 700; }
   .filterbar { position: relative; z-index: 30; background: #0f172a; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   .filterbar-inner { max-width: 1480px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .fgroup { display: flex; align-items: center; gap: 6px; position: relative; }
@@ -109,7 +109,7 @@
 
   .size-legend { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); margin: 6px 0 2px; }
   .size-legend span { display: inline-flex; align-items: center; gap: 5px; }
-  .size-legend i { border-radius: 50%; display: inline-block; background: rgba(239,68,68,.45); border: 1px solid var(--accent); }
+  .size-legend i { border-radius: 50%; display: inline-block; background: rgba(250,204,21,.45); border: 1px solid var(--accent); }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; display: none; align-items: center; justify-content: center; padding: 24px; }
   .modal-overlay.open { display: flex; }
@@ -414,7 +414,7 @@ function barOption(deals, dim, colorMap, metric){
     grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
     xAxis:{type:'category', data:data.map(x=>labelOf(dim,x[0])), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:data.length>6?18:0}},
     yAxis:{type:'value', ...AXIS},
-    series:[{type:'bar', barMaxWidth:34, data:data.map(x=>({value:x[1], itemStyle:{color:(colorMap&&colorMap[x[0]])||'#ef4444', borderRadius:[4,4,0,0]}}))}]};
+    series:[{type:'bar', barMaxWidth:34, data:data.map(x=>({value:x[1], itemStyle:{color:(colorMap&&colorMap[x[0]])||'#facc15', borderRadius:[4,4,0,0]}}))}]};
 }
 function dealTableHtml(deals){
   if(!deals.length) return '<div style="padding:20px;color:var(--muted)">无匹配交易</div>';
@@ -649,7 +649,7 @@ function renderEconomics(deals){
   // 趋势三图 + 时间粒度切换
   wireSwitch('eco-gran', {year:'Year 年', quarter:'Quarter 季度', month:'Month 月'}, ecoGran, v=>{ ecoGran=v; render(); });
   const c1 = mount('eco-count', trendBarOption(rows,'count','#60a5fa',ecoGran));
-  const c2 = mount('eco-up', trendBarOption(rows,'up','#ef4444',ecoGran));
+  const c2 = mount('eco-up', trendBarOption(rows,'up','#facc15',ecoGran));
   const c3 = mount('eco-tot', trendBarOption(rows,'tot','#fbbf24',ecoGran));
   [c1,c2,c3].forEach(c=>{ if(c) c.on('click', p=>{ const y=+String(p.data._r.key).slice(0,4); state.years=[y,y]; state.page='explorer'; state.search=''; render(); }); });
   document.getElementById('eco-count-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'countYoY');
@@ -663,7 +663,7 @@ function renderEconomics(deals){
     grid:{left:8,right:8,top:24,bottom:8,containLabel:true},
     xAxis:{type:'category', data:mods.map(m=>labelOf('modality',m)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'value', ...AXIS, name:'US$M', nameTextStyle:{color:'#8b9bb0'}},
-    series:[{type:'boxplot', data:mods.map(m=>quartiles(disc.filter(d=>d.modality===m).map(d=>d.total))), itemStyle:{color:'#ef4444', borderColor:'#f87171'}, boxWidth:[12,28]}]
+    series:[{type:'boxplot', data:mods.map(m=>quartiles(disc.filter(d=>d.modality===m).map(d=>d.total))), itemStyle:{color:'#facc15', borderColor:'#fde047'}, boxWidth:[12,28]}]
   });
   // 气泡图（面积映射首付款 + jitter）
   const bubbleData = disc.map((d,idx)=>({
@@ -767,7 +767,7 @@ function renderPipeline(deals){
     xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), name:'药物形式 Modality', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'value', ...AXIS, name:'数量 Count', nameLocation:'middle', nameGap:28, nameTextStyle:{color:'#8b9bb0'}},
     series:[
-      {name:'去重靶点数 Targets', type:'bar', barMaxWidth:16, itemStyle:{color:'#ef4444', borderRadius:[4,4,0,0]}, data:mdList.map(m=>m.tg.size)},
+      {name:'去重靶点数 Targets', type:'bar', barMaxWidth:16, itemStyle:{color:'#facc15', borderRadius:[4,4,0,0]}, data:mdList.map(m=>m.tg.size)},
       {name:'去重资产数 Assets', type:'bar', barMaxWidth:16, itemStyle:{color:'#60a5fa', borderRadius:[4,4,0,0]}, data:mdList.map(m=>m.assets.size)}
     ]
   });
@@ -780,8 +780,8 @@ function renderPipeline(deals){
     grid:{left:8,right:8,top:8,bottom:8,containLabel:true},
     xAxis:{type:'category', data:modsShown.map(m=>labelOf('modality',m.k)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'category', data:topTg.slice().reverse(), ...AXIS},
-    visualMap:{min:0, max:heatMax, show:false, inRange:{color:['#3f0d0d','#ef4444']}},
-    series:[{type:'heatmap', data:heatData, label:{show:true, fontSize:10, color:p=>p.value[2]>=heatMax/2?'#fff':'#3f0d0d'}}] });
+    visualMap:{min:0, max:heatMax, show:false, inRange:{color:['#3d3300','#facc15']}},
+    series:[{type:'heatmap', data:heatData, label:{show:true, fontSize:10, color:p=>p.value[2]>=heatMax/2?'#fff':'#3d3300'}}] });
   wireSwitch('pl-heat-metric', {count:'交易笔数 Deals', assets:'去重资产 Assets'}, pipeHeatMetric, v=>{ pipeHeatMetric=v; render(); });
 
   // 模块2 B：价值气泡图
@@ -792,7 +792,7 @@ function renderPipeline(deals){
     grid:{left:8,right:8,top:8,bottom:8,containLabel:true},
     xAxis:{type:'category', data:modsShown.map(m=>labelOf('modality',m.k)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'category', data:topTg.slice().reverse(), ...AXIS},
-    visualMap:{dimension:2, min:0, max:valMax, calculable:true, right:0, top:'middle', orient:'vertical', textStyle:{color:'#8b9bb0', fontSize:10}, inRange:{color:['#3f0d0d','#ef4444']}},
+    visualMap:{dimension:2, min:0, max:valMax, calculable:true, right:0, top:'middle', orient:'vertical', textStyle:{color:'#8b9bb0', fontSize:10}, inRange:{color:['#3d3300','#facc15']}},
     series:[{type:'scatter', data:valRows.map(c=>({value:[modsShown.findIndex(m=>m.k===c.modality), topTg.indexOf(c.target), c[valColorKey]], n:c.n, target:c.target, modality:c.modality, medianTotal:c.medianTotal, medianUp:c.medianUp})), symbolSize:function(v,p){return 10+Math.sqrt(p.data.n)*6;}}] });
   wireSwitch('pl-value-color', {medianTotal:'颜色=中位总金额 Median Total', medianUp:'颜色=首付款中位数 Median Upfront'}, pipeValueColor, v=>{ pipeValueColor=v; render(); });
 
@@ -828,7 +828,7 @@ function renderPipeline(deals){
     grid:{left:16,right:8,top:24,bottom:24,containLabel:true},
     xAxis:{type:'category', data:stagesPresent.map(s=>labelOf('stage',s)), name:'研发阶段 Stage', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'value', ...AXIS, name:'US$M', nameTextStyle:{color:'#8b9bb0'}},
-    series:[{type:'boxplot', data:stagesPresent.map(st=>quartiles(disc.filter(d=>d.stage===st).map(d=>d.total))), itemStyle:{color:'#ef4444', borderColor:'#f87171'}, boxWidth:[12,26]}] });
+    series:[{type:'boxplot', data:stagesPresent.map(st=>quartiles(disc.filter(d=>d.stage===st).map(d=>d.total))), itemStyle:{color:'#facc15', borderColor:'#fde047'}, boxWidth:[12,26]}] });
 
   // 模块5：机会矩阵
   const oppData = combos.filter(c=>c.medianTotal>0).map(c=>({value:[c.n, c.medianTotal, c.growth], n:c.n, rec:c.rec, target:c.target, modality:c.modality, medianTotal:c.medianTotal}));
@@ -989,7 +989,7 @@ function openDeal(id){
     <div class="note">${d.analystNote||'无备注'}</div>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="dd-btn" onclick="state.page='explorer';state.search='${d.asset}';render();closeDeal();">在交易数据库中查看</button>
-      <button class="dd-btn" style="background:var(--accent);color:#ffffff;border-color:var(--accent);font-weight:600" onclick="closeDeal()">关闭</button>
+      <button class="dd-btn" style="background:var(--accent);color:#1c1700;border-color:var(--accent);font-weight:600" onclick="closeDeal()">关闭</button>
     </div>`;
   document.getElementById('modalOverlay').classList.add('open');
 }
@@ -1013,7 +1013,7 @@ function openCompany(name){
     <table class="tbl" style="margin-top:8px"><tbody>${rows.slice(0,5).map(r=>`<tr onclick="openDeal('${r.id}')"><td class="num">${r.date}</td><td>${r.asset}</td><td>${tagHtml(modColor(r.modality), labelOf('modality',r.modality))}</td><td>${labelOf('indication',r.indication)}</td><td class="num">${fmtM(r.total)}</td></tr>`).join('')}</tbody></table>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="dd-btn" onclick="state.page='explorer';state.search='${name}';render();closeDeal();">在交易数据库中查看</button>
-      <button class="dd-btn" style="background:var(--accent);color:#ffffff;border-color:var(--accent);font-weight:600" onclick="closeDeal()">关闭</button>
+      <button class="dd-btn" style="background:var(--accent);color:#1c1700;border-color:var(--accent);font-weight:600" onclick="closeDeal()">关闭</button>
     </div>`;
   document.getElementById('modalOverlay').classList.add('open');
 }
