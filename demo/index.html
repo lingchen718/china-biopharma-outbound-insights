@@ -71,7 +71,7 @@
   .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
   .card h3 { margin: 0 0 4px; font-size: 14.5px; color: var(--ink); }
   .card h3 .zh { color: var(--ink); }
-  .card h3 .en { color: var(--accent); }
+  .card h3 .en { color: #fde68a; }
   .card .hint { color: var(--muted); font-size: 12px; margin: 0 0 10px; line-height: 1.5; }
   .chart { width: 100%; overflow: hidden; }
   .ch-sm { height: 220px; } .ch-md { height: 280px; } .ch-lg { height: 340px; }
@@ -442,12 +442,12 @@ function renderOverview(deals){
   const recent = deals.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
   main.innerHTML = title('市场概览 Overview', PAGE_EN.overview) + kpiHtml(deals) +
   `<div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>交易活跃度趋势 Deal Activity Trends</h3>
+    <div class="card"><h3><span class="zh">交易活跃度趋势</span> <span class="en">Deal Activity Trends</span></h3>
       <div class="metric-switch" id="ov-metric"></div><div class="dim-switch" id="ov-dim"></div>
       <div id="ov-trend" class="chart ch-md"></div></div>
-    <div class="card"><h3>全球足迹 · Destination of Chinese Biopharma Assets</h3><p class="hint">中国资产出海目的地；按授权区域（territory）展示，点击后以区域（region）筛选</p><div id="ov-map" class="chart ch-md"></div></div>
+    <div class="card"><h3><span class="zh">全球足迹</span> <span class="en">Destination of Chinese Biopharma Assets</span></h3><p class="hint">中国资产出海目的地；按授权区域（territory）展示，点击后以区域（region）筛选</p><div id="ov-map" class="chart ch-md"></div></div>
   </div>
-  <div class="card" style="margin-top:14px"><h3>最近交易 Recent Transactions</h3><div id="ov-recent"></div></div>`;
+  <div class="card" style="margin-top:14px"><h3><span class="zh">最近交易</span> <span class="en">Recent Transactions</span></h3><div id="ov-recent"></div></div>`;
   mount('ov-trend', buildTrend(deals, ovMetric, ovDim));
   renderWorldMap('ov-map', deals);
   document.getElementById('ov-recent').innerHTML = dealTableHtml(recent);
@@ -493,7 +493,7 @@ function renderLandscape(deals){
   ];
   main.innerHTML = title('交易格局 Deal Landscape', PAGE_EN.landscape) +
     `<div class="grid g2">${dims.map((d,i)=>`
-      <div class="card"><h3>${d.t}</h3><p class="hint">${d.q}</p>
+      <div class="card"><h3><span class="zh">${d.t.split(' ')[0]}</span> <span class="en">${d.t.split(' ').slice(1).join(' ')}</span></h3><p class="hint">${d.q}</p>
         <div class="duo">
           <div><div id="ls-count-${i}" class="chart ch-sm"></div><div class="cap">Counts of Deals</div></div>
           <div><div id="ls-up-${i}" class="chart ch-sm"></div><div class="cap">Sum of Upfront Payments (US$)</div></div>
@@ -623,7 +623,7 @@ function renderEconomics(deals){
 
   <div class="card" style="margin-top:14px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-      <div><h3>交易活跃度与金额趋势 Deal Activity & Value Trends</h3>
+      <div><h3><span class="zh">交易活跃度与金额趋势</span> <span class="en">Deal Activity & Value Trends</span></h3>
       <p class="hint">按签署日期统计交易数量、已披露首付款总额与潜在交易总额；三图共享时间粒度。最新期间可能为进行中期间（如 2026 YTD）。Undisclosed values are excluded from sums.</p></div>
       <div class="metric-switch" id="eco-gran"></div>
     </div>
@@ -634,15 +634,15 @@ function renderEconomics(deals){
     </div>
   </div>
 
-  <div class="card" style="margin-top:14px"><h3>金额分布 Deal Value Distribution</h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）。单位：US$M（百万美元）。Grouped by modality; unit: US$M (millions).</p><div id="ec-box" class="chart ch-md"></div></div>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">金额分布</span> <span class="en">Deal Value Distribution</span></h3><p class="hint">按药物形式分组的潜在总额箱线图（P25/Median/P75，离群点单独显示）。单位：US$M（百万美元）。Grouped by modality; unit: US$M (millions).</p><div id="ec-box" class="chart ch-md"></div></div>
 
-  <div class="card" style="margin-top:14px"><h3>交易金额探索 Deal Economics Explorer — Transaction-level Economics</h3>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">交易金额探索</span> <span class="en">Deal Economics Explorer — Transaction-level Economics</span></h3>
     <div class="size-legend"><span style="color:var(--ink-2)">气泡面积 Bubble area = 首付款 Upfront：</span><span><i style="width:10px;height:10px"></i>$10M</span><span><i style="width:17px;height:17px"></i>$50M</span><span><i style="width:32px;height:32px"></i>$200M</span></div>
     <div class="size-legend"><span style="color:var(--ink-2)">颜色 Color = 药物形式 Modality：</span>${colorLegend}</div>
     <div class="size-legend"><span style="color:var(--ink-2)">形状 Shape = 交易类型 Deal Type：</span><span>● License-out</span><span>◆ Co-development</span><span>▲ Asset transfer</span><span>■ Non-exclusive</span><span>▭ Option</span><span>📌 M&A</span><span>↑ JV</span><span>■ Other</span></div>
     <div id="ec-bubble" class="chart" style="height:560px"></div></div>
 
-  <div class="card" style="margin-top:14px"><h3>里程碑分析 Milestone Analysis — Largest Disclosed Milestone Packages</h3>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">里程碑分析</span> <span class="en">Milestone Analysis — Largest Disclosed Milestone Packages</span></h3>
     <p class="hint">Derived as total − upfront only when the consideration is consistent and separable; deals with equity/royalty components are marked Not Derivable.</p>
     <div id="ec-milestone"></div></div>`;
 
@@ -857,10 +857,10 @@ const AREA_HOTSPOTS = {Oncology:['肺癌 NSCLC','乳腺癌 Breast','卵巢癌 Ov
 function renderTherapy(deals){
   main.innerHTML = title('治疗领域 Therapeutic Areas', PAGE_EN.therapy) +
   `<div class="grid g2">
-    <div class="card"><h3>治疗趋势 Disease Area Trends</h3><p class="hint">各治疗领域的年度交易数量变化。Annual deal count trends by therapeutic area.</p><div id="th-trend" class="chart ch-lg"></div></div>
-    <div class="card"><h3>适应症热点 Indication Hotspots</h3><p class="hint">各领域内热门具体适应症。Hot specific indications within each area.</p><div id="th-hot"></div></div>
+    <div class="card"><h3><span class="zh">治疗趋势</span> <span class="en">Disease Area Trends</span></h3><p class="hint">各治疗领域的年度交易数量变化。Annual deal count trends by therapeutic area.</p><div id="th-trend" class="chart ch-lg"></div></div>
+    <div class="card"><h3><span class="zh">适应症热点</span> <span class="en">Indication Hotspots</span></h3><p class="hint">各领域内热门具体适应症。Hot specific indications within each area.</p><div id="th-hot"></div></div>
   </div>
-  <div class="card" style="margin-top:14px"><h3>深入分析 Deep Dive</h3>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">深入分析</span> <span class="en">Deep Dive</span></h3>
     <p class="hint">选择单个治疗领域，查看其药物形式、研发阶段、公司与交易结构。Select one therapeutic area to explore its modality, stage, companies and deal structure.</p>
     <div style="margin-bottom:10px"><select class="dd-btn" id="th-area">${INDS.map(i=>`<option ${i===therapyArea?'selected':''}>${i}</option>`).join('')}</select></div>
     <div class="grid g2"><div id="th-mod" class="chart ch-md"></div><div id="th-stage" class="chart ch-md"></div></div>
@@ -926,11 +926,11 @@ function renderCompanies(deals){
   const cnSorted=sortCompanies(cn,coSort), osSorted=sortCompanies(os,coSort2);
   main.innerHTML = title('交易参与方 Companies', PAGE_EN.companies) +
   `<div class="leader">
-    <div class="side card"><h3>中国授权方 Licensors</h3><p class="hint">不做武断排名，可按多指标切换排序</p><div id="co-cn"></div></div>
-    <div class="side card"><h3>海外引进方 Overseas Licensee</h3><p class="hint">与中国交易的海外公司</p><div id="co-os"></div></div>
+    <div class="side card"><h3><span class="zh">中国授权方</span> <span class="en">Licensors</span></h3><p class="hint">不做武断排名，可按多指标切换排序</p><div id="co-cn"></div></div>
+    <div class="side card"><h3><span class="zh">海外引进方</span> <span class="en">Overseas Licensee</span></h3><p class="hint">与中国交易的海外公司</p><div id="co-os"></div></div>
   </div>
-  <div class="card" style="margin-top:14px"><h3>公司 × 药物形式 Company × Modality</h3><p class="hint">气泡大小 = 交易笔数；颜色 = 药物形式（与全站配色一致）。Bubble size = deal count; color = modality.</p><div id="co-bubble" class="chart ch-md"></div></div>
-  <div class="card" style="margin-top:14px"><h3>生态网络 Network</h3><p class="hint">节点=公司（<span style="color:#2dd4bf">● 中国</span> / <span style="color:#60a5fa">● 海外</span>），大小=交易笔数，连线=交易；可拖拽/缩放，点击节点查看公司档案</p><div id="co-net" class="chart" style="height:440px"></div></div>`;
+  <div class="card" style="margin-top:14px"><h3><span class="zh">公司 × 药物形式</span> <span class="en">Company × Modality</span></h3><p class="hint">气泡大小 = 交易笔数；颜色 = 药物形式（与全站配色一致）。Bubble size = deal count; color = modality.</p><div id="co-bubble" class="chart ch-md"></div></div>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">生态网络</span> <span class="en">Network</span></h3><p class="hint">节点=公司（<span style="color:#2dd4bf">● 中国</span> / <span style="color:#60a5fa">● 海外</span>），大小=交易笔数，连线=交易；可拖拽/缩放，点击节点查看公司档案</p><div id="co-net" class="chart" style="height:440px"></div></div>`;
   document.getElementById('co-cn').innerHTML = leaderTableHtml(cnSorted, coSort);
   document.getElementById('co-os').innerHTML = leaderTableHtml(osSorted, coSort2);
   // 公司 × 药物形式
