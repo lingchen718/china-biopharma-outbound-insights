@@ -751,10 +751,10 @@ function renderPipeline(deals){
 
   // 模块1 A：排名
   mount('pl-tg', { tooltip:{...TOOLTIP_DARK, trigger:'axis'}, grid:{left:16,right:8,top:24,bottom:24,containLabel:true},
-    xAxis:{type:'category', data:tgList.slice(0,10).map(t=>t.target), name:'靶点 Target', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:24}}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:36, nameTextStyle:{color:'#8b9bb0'}},
+    xAxis:{type:'category', data:tgList.slice(0,10).map(t=>t.target), name:'靶点 Target', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:24}}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:26, nameTextStyle:{color:'#8b9bb0'}},
     series:[{type:'bar', barMaxWidth:24, data:tgList.slice(0,10).map(t=>({value:t.n, itemStyle:{color:'#60a5fa', borderRadius:[4,4,0,0]}}))}] });
   mount('pl-md', { tooltip:{...TOOLTIP_DARK, trigger:'axis'}, grid:{left:16,right:8,top:24,bottom:24,containLabel:true},
-    xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), name:'药物形式 Modality', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:36, nameTextStyle:{color:'#8b9bb0'}},
+    xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), name:'药物形式 Modality', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:26, nameTextStyle:{color:'#8b9bb0'}},
     series:[{type:'bar', barMaxWidth:28, data:mdList.map(m=>({value:m.n, itemStyle:{color:modColor(m.modality), borderRadius:[4,4,0,0]}}))}] });
 
   // 模块1 B：覆盖表
@@ -788,7 +788,7 @@ function renderPipeline(deals){
   mount('pl-trend', { color:modsShown.map(m=>modColor(m.k)), tooltip:{...TOOLTIP_DARK, trigger:'axis'},
     legend:{type:'scroll', top:0, textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
     grid:{left:16,right:8,top:26,bottom:24,containLabel:true},
-    xAxis:{type:'category', data:yrs.map(y=>String(y)), name:'年份 Year', nameTextStyle:{color:'#8b9bb0'}, ...AXIS}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:36, nameTextStyle:{color:'#8b9bb0'}},
+    xAxis:{type:'category', data:yrs.map(y=>String(y)), name:'年份 Year', nameTextStyle:{color:'#8b9bb0'}, ...AXIS}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:26, nameTextStyle:{color:'#8b9bb0'}},
     series:modsShown.map(m=>({name:labelOf('modality',m.k), type:'line', smooth:true, symbol:'circle', symbolSize:5, color:modColor(m.k), data:yrs.map(y=>known.filter(d=>d.modality===m.k && d.year===y).length)})) });
   const shareData = {}; yrs.forEach(y=>{ let tot=0; modsShown.forEach(m=>{ const n=known.filter(d=>d.modality===m.k && d.year===y).length; shareData[m.k+y]=n; tot+=n; }); shareData['__tot'+y]=tot; });
   mount('pl-share', { color:modsShown.map(m=>modColor(m.k)), tooltip:{...TOOLTIP_DARK, trigger:'axis', valueFormatter:v=>v+'%'},
