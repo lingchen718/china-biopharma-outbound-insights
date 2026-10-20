@@ -79,11 +79,12 @@ def ep_deals(qs):
     if limit: sql += " LIMIT " + str(limit)
     return {"deals": [boolify(r) for r in rows(sql, a)]}
 
-def ep_overview_kpis():
+def ep_overview_kpis(qs):
+    w, a = filter_clause(qs)
     sql = ("SELECT COUNT(*) AS total_deals, COALESCE(SUM(total_value_musd),0) AS total_value, "
            "COALESCE(MAX(total_value_musd),0) AS highest_deal, COALESCE(SUM(upfront_musd),0) AS total_upfront, "
-           "COUNT(DISTINCT licensor) AS licensors, COUNT(DISTINCT licensee) AS licensees FROM deals")
-    return one(sql)
+           "COUNT(DISTINCT licensor) AS licensors, COUNT(DISTINCT licensee) AS licensees FROM deals" + w)
+    return one(sql, a)
 
 def ep_overview_trends(qs):
     metric = qs.get("metric",["count"])[0]
@@ -92,13 +93,15 @@ def ep_overview_trends(qs):
            "total":"COALESCE(SUM(CASE WHEN has_total=1 THEN total_value_musd END),0)"}.get(metric, "COUNT(*)")
     cats = [r["v"] for r in rows(f"SELECT DISTINCT {dim} AS v FROM deals WHERE {dim} IS NOT NULL AND {dim}!='' ORDER BY {dim}")]
     years = [2020,2021,2022,2023,2024,2025,2026]
-    grid = rows(f"SELECT year, {dim} AS dim, {val} AS v FROM deals GROUP BY year, {dim}")
+    w, a = filter_clause(qs)
+    grid = rows(f"SELECT year, {dim} AS dim, {val} AS v FROM deals" + w + f" GROUP BY year, {dim}", a)
     g = {(r["year"], r["dim"]): r["v"] for r in grid}
     series = [{"name": c, "data": [g.get((y,c),0) for y in years]} for c in cats]
     return {"years": years, "categories": cats, "series": series}
 
-def ep_geo():
-    return rows("SELECT region, COUNT(*) AS deals, COALESCE(SUM(total_value_musd),0) AS value FROM deals GROUP BY region ORDER BY deals DESC LIMIT 8")
+def ep_geo(qs):
+    w, a = filter_clause(qs)
+    return rows("SELECT region, COUNT(*) AS deals, COALESCE(SUM(total_value_musd),0) AS value FROM deals" + w + " GROUP BY region ORDER BY deals DESC LIMIT 8", a)
 
 def ep_landscape(qs, dim):
     if dim not in ("modality","indication","stage","deal_type"): dim = "modality"
@@ -215,9 +218,9 @@ def ep_companies_network():
 ENDPOINTS = {
     "/api/meta": lambda qs: ep_meta(),
     "/api/deals": ep_deals,
-    "/api/overview/kpis": lambda qs: ep_overview_kpis(),
+    "/api/overview/kpis": ep_overview_kpis,
     "/api/overview/trends": ep_overview_trends,
-    "/api/geo/territory": lambda qs: ep_geo(),
+    "/api/geo/territory": ep_geo,
     "/api/economics/snapshot": lambda qs: ep_economics_snapshot(),
     "/api/economics/activity-value-trends": ep_economics_trends,
     "/api/economics/distribution": lambda qs: ep_economics_distribution(),

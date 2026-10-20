@@ -446,9 +446,69 @@ function title(zh, en){
 }
 
 let ovMetric='count', ovDim='modality';
-function renderOverview(deals){
-  const recent = deals.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
-  main.innerHTML = title('市场概览 Overview', PAGE_EN.overview) + kpiHtml(deals) +
+function stateParams(){
+  const p = new URLSearchParams();
+  p.set('year_from', state.years[0]); p.set('year_to', state.years[1]);
+  const add=(k,set,all)=>{ if(set.size < all.length) p.set(k, [...set].join(',')); };
+  add('deal_type', state.dealType, DTYPES);
+  add('modality', state.modality, MODS.map(m=>m.k));
+  add('indication', state.indication, INDS);
+  add('stage', state.stage, STAGES);
+  add('region', state.region, REGIONS);
+  if(state.search) p.set('q', state.search);
+  return p;
+}
+function kpiHtmlFromServer(k){
+  const items = [
+    ['交易笔数 Total Deals', fmtInt(k.total_deals||0), 'Deals'],
+    ['披露总额 Total Value', fmtM(k.total_value), 'Disclosed'],
+    ['最高单笔 Highest Deal', fmtM(k.highest_deal), 'Highest'],
+    ['首付款 Upfront', fmtM(k.total_upfront), 'Upfront'],
+    ['中国授权方 CN Licensors', fmtInt(k.licensors||0), 'Licensors'],
+    ['海外引进方 Overseas Licensee', fmtInt(k.licensees||0), 'Licensees']
+  ];
+  return `<div class="kpis">${items.map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}</div>`;
+}
+function trendFromServer(resp, metric, dim){
+  const years = resp.years || [];
+  const series = (resp.series||[]).map(s=>({
+    name: labelOf(dim, s.name), type:'line', stack:'total', smooth:true, symbol:'circle', symbolSize:6,
+    areaStyle:{opacity: dim==='modality' ? .45 : .12}, lineStyle:{width:2}, color: colorOf(dim, s.name), emphasis:{focus:'series'},
+    data: s.data||[]
+  }));
+  return { color: (resp.categories||[]).map(c=>colorOf(dim,c)), tooltip:{...TOOLTIP_DARK, trigger:'axis'},
+    legend:{type:'scroll', bottom:0, icon:'roundRect', itemWidth:10, itemHeight:10, textStyle:{fontSize:11, color:'#cbd5e1'}, pageTextStyle:{color:'#8b9bb0'}},
+    grid:{left:8,right:8,top:12,bottom:62,containLabel:true},
+    xAxis:{type:'category', data:years.map(y=>'\''+String(y).slice(2)), ...AXIS},
+    yAxis:{type:'value', ...AXIS, name: METRIC_LABEL[metric], nameTextStyle:{color:'#8b9bb0'}}, series };
+}
+function renderGeoFromServer(elId, geo){
+  const el = document.getElementById(elId);
+  const max = Math.max(1, ...(geo||[]).map(x=>x.deals||0));
+  el.innerHTML = `<div class="footprint">${(geo||[]).map(g=>{
+    const c = REGION_COLORS[g.region]||'#94a3b8';
+    const active = state.region.size===1 && state.region.has(g.region);
+    return `<div class="fp-tile ${active?'active':''}" style="--c:${c}" onclick="state.region=new Set(['${g.region}']);showToast('已按授权区域筛选：${labelOf('region',g.region)}');render();">
+      <div class="fp-flag">${REGION_FLAGS[g.region]||'🌐'}</div>
+      <div class="fp-name">${labelOf('region',g.region)}</div>
+      <div class="fp-n">${g.deals} <span style="font-size:12px;color:var(--muted);font-weight:500">笔</span></div>
+      <div class="fp-v">披露总额 ${fmtM(g.value)}</div>
+      <div class="fp-bar"><span style="width:${Math.round((g.deals||0)/max*100)}%;background:${c}"></span></div>
+    </div>`;
+  }).join('')}</div>
+  <div class="hint" style="font-size:11px;margin-top:8px">按授权区域（region）展示，取交易笔数最高的 8 个区域；点击区域 → 全局筛选。</div>`;
+}
+async function renderOverview(){
+  const q = stateParams();
+  const t = new URLSearchParams(q.toString()); t.set('metric', ovMetric); t.set('dim', ovDim);
+  const d = new URLSearchParams(q.toString()); d.set('limit','8');
+  const [kpis, trends, geo, recent] = await Promise.all([
+    fetch('/api/overview/kpis?'+q.toString()).then(r=>r.json()),
+    fetch('/api/overview/trends?'+t.toString()).then(r=>r.json()),
+    fetch('/api/geo/territory?'+q.toString()).then(r=>r.json()),
+    fetch('/api/deals?'+d.toString()).then(r=>r.json())
+  ]);
+  main.innerHTML = title('市场概览 Overview', PAGE_EN.overview) + kpiHtmlFromServer(kpis) +
   `<div class="grid g2" style="margin-top:14px">
     <div class="card"><h3><span class="zh">交易活跃度趋势</span> <span class="en">Deal Activity Trends</span></h3>
       <div class="metric-switch" id="ov-metric"></div><div class="dim-switch" id="ov-dim"></div>
@@ -456,9 +516,9 @@ function renderOverview(deals){
     <div class="card"><h3><span class="zh">全球足迹</span> <span class="en">Destination of Chinese Biopharma Assets</span></h3><p class="hint">中国资产出海目的地；按授权区域（territory）展示，点击后以区域（region）筛选</p><div id="ov-map" class="chart"></div></div>
   </div>
   <div class="card" style="margin-top:14px"><h3><span class="zh">最近交易</span> <span class="en">Recent Transactions</span></h3><div id="ov-recent"></div></div>`;
-  mount('ov-trend', buildTrend(deals, ovMetric, ovDim));
-  renderWorldMap('ov-map', deals);
-  document.getElementById('ov-recent').innerHTML = dealTableHtml(recent);
+  mount('ov-trend', trendFromServer(trends, ovMetric, ovDim));
+  renderGeoFromServer('ov-map', geo);
+  document.getElementById('ov-recent').innerHTML = dealTableHtml((recent.deals||[]).map(normalizeDeal));
   wireSwitch('ov-metric', METRIC_LABEL, ovMetric, m=>{ ovMetric=m; render(); });
   wireSwitch('ov-dim', {modality:'药物形式', indication:'治疗领域', stage:'研发阶段', region:'授权区域'}, ovDim, d=>{ ovDim=d; render(); });
 }
@@ -1129,11 +1189,12 @@ function openCompany(name){
 }
 
 // ===== 导航 / 过滤 / 渲染 =====
-function renderMain(){
+async function renderMain(){
   clearCharts();
+  if(state.page==='overview'){ await renderOverview(); return; }
   const deals=filtered();
-  const pages={overview:renderOverview, landscape:renderLandscape, economics:renderEconomics, pipeline:renderPipeline, therapy:renderTherapy, companies:renderCompanies, explorer:renderExplorer};
-  (pages[state.page]||renderOverview)(deals);
+  const pages={landscape:renderLandscape, economics:renderEconomics, pipeline:renderPipeline, therapy:renderTherapy, companies:renderCompanies, explorer:renderExplorer};
+  (pages[state.page]||renderLandscape)(deals);
 }
 function syncNav(){ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.page===state.page)); }
 function syncFilterbar(){
