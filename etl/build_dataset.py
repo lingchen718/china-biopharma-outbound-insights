@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """读取 2021–2026 清洗后 CSV，规范化并输出统一数据集与质量报告。"""
-import csv, json, os, collections, math
+import csv, json, os, collections, math, datetime
 
-BASE = "/Users/lingchen/ComputerScience/portfolio/中国药企出海追踪/" + "Data" + "Cleaning" + "/processed"
-YEARS = [2021, 2022, 2023, 2024, 2025, 2026]
+BASE = "/Users/lingchen/Documents/ChatGPT/中国生物医药出海数据清洗/normalized"
+YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
 OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 # ---------- 规范化映射（源值 -> 英文规范键） ----------
@@ -189,7 +189,7 @@ def main():
         "deal_type": sorted({d["deal_type"] for d in deals}),
         "region": sorted({d["region"] for d in deals}),
         "confidence": sorted({d["confidence"] for d in deals}),
-        "generated": "2026-10-20",
+        "generated": str(datetime.date.today()),
     }
 
     os.makedirs(OUT_DIR, exist_ok=True)

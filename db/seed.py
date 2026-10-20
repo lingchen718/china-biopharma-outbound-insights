@@ -36,15 +36,14 @@ COLS = ["deal_id","date","year","licensor","licensee","asset","target","modality
 def ensure_db(path=DB_PATH):
     with sqlite3.connect(path) as conn:
         conn.executescript(SCHEMA)
-        n = conn.execute("SELECT COUNT(*) FROM deals").fetchone()[0]
-        if n == 0:
-            with open(DATA_PATH, encoding="utf-8") as f:
-                data = json.load(f)
-            rows = [tuple(d.get(c) for c in COLS) for d in data["deals"]]
-            conn.executemany(
-                f"INSERT OR REPLACE INTO deals ({','.join(COLS)}) VALUES ({','.join('?'*len(COLS))})",
-                rows)
-            n = len(rows)
+        with open(DATA_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        rows = [tuple(d.get(c) for c in COLS) for d in data["deals"]]
+        conn.execute("DELETE FROM deals")
+        conn.executemany(
+            f"INSERT OR REPLACE INTO deals ({','.join(COLS)}) VALUES ({','.join('?'*len(COLS))})",
+            rows)
+        n = len(rows)
     return n
 
 if __name__ == "__main__":

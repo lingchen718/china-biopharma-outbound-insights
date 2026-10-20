@@ -146,7 +146,7 @@
         </div>
         <div>
           <h1>中国生物医药出海交易洞察</h1>
-          <p>China Biopharma Licensing-out Deal Intelligence · 2019–2026 YTD · 演示 Demo</p>
+          <p>China Biopharma Licensing-out Deal Intelligence · 2020–2026 YTD · 演示 Demo</p>
         </div>
       </div>
       <nav class="nav" id="nav"></nav>
@@ -256,7 +256,7 @@ boot();
 
 // ===== 全局状态 =====
 const state = {
-  page: 'overview', years: [2021, 2026],
+  page: 'overview', years: [2020, 2026],
   dealType: new Set(DTYPES), modality: new Set(MODS.map(m=>m.k)),
   indication: new Set(INDS), stage: new Set(STAGES), region: new Set(REGIONS), search: ''
 };
@@ -290,7 +290,7 @@ function buildNav(){
   document.getElementById('nav').innerHTML = NAV.map(([k,l])=>`<button data-page="${k}" class="${state.page===k?'active':''}">${l}</button>`).join('');
 }
 function buildFilterbar(){
-  const years=[2021,2022,2023,2024,2025,2026];
+  const years=[2020,2021,2022,2023,2024,2025,2026];
   let html = `<div class="fgroup"><label>Year</label>
     <select class="dd-btn" id="fy0">${years.map(y=>`<option ${y===state.years[0]?'selected':''}>${y}</option>`).join('')}</select>
     <span style="color:var(--muted)">—</span>
@@ -348,7 +348,7 @@ function metricVal(d, metric){
 const METRIC_LABEL = {count:'交易笔数 Deals', upfront:'首付款 Upfront ($M)', total:'潜在总额 Total ($M)'};
 
 function buildTrend(deals, metric, dim){
-  const years=[2019,2020,2021,2022,2023,2024,2025,2026];
+  const years=[2020,2021,2022,2023,2024,2025,2026];
   const cats = dimValues(dim);
   const series = cats.map(v=>({
     name: labelOf(dim,v), type:'line', stack:'total', smooth:true, symbol:'circle', symbolSize:6,
@@ -1152,7 +1152,7 @@ function wireFilterbar(){
   document.getElementById('freset').onclick=()=>{ resetFilters(); render(); };
 }
 function resetFilters(){
-  state.years=[2021,2026];
+  state.years=[2020,2026];
   state.dealType=new Set(DTYPES); state.modality=new Set(MODS.map(m=>m.k));
   state.indication=new Set(INDS); state.stage=new Set(STAGES); state.region=new Set(REGIONS); state.search='';
 }
