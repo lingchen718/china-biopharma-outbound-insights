@@ -70,6 +70,8 @@
   .g3 { grid-template-columns: 1fr 1fr 1fr; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
   .card h3 { margin: 0 0 4px; font-size: 14.5px; color: var(--ink); }
+  .card h3 .zh { color: var(--ink); }
+  .card h3 .en { color: var(--accent); }
   .card .hint { color: var(--muted); font-size: 12px; margin: 0 0 10px; line-height: 1.5; }
   .chart { width: 100%; overflow: hidden; }
   .ch-sm { height: 220px; } .ch-md { height: 280px; } .ch-lg { height: 340px; }
@@ -714,38 +716,38 @@ function renderPipeline(deals){
   `<div class="card" style="margin-bottom:14px"><p class="hint" style="margin:0">本页按独立交易统计；排名与热力图默认仅含已知有效分类（排除 Other/Unknown/未披露），金额图仅含已披露金额。交易活跃度与金额仅代表公开市场观察，不等同于临床疗效或商业成功概率。Rankings/heatmap use known classifications only; amount charts use disclosed amounts only. Deal activity and value reflect public disclosures, not clinical efficacy or commercial success.</p></div>
 
   <div class="grid g2">
-    <div class="card"><h3>市场热点 · 药物形式 Top 10 Market Hotspots · Modality Top 10</h3><p class="hint">纵轴：独立交易笔数（按 deal_id 去重）。Y-axis: distinct deal count.</p><div id="pl-md" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=独立交易笔数 Deals。核心：识别最活跃的技术路线。Identifies the most active modalities.</div></div>
-    <div class="card"><h3>市场热点 · 靶点 Top 10 Market Hotspots · Target Top 10</h3><p class="hint">纵轴：独立交易笔数（按 deal_id 去重）。Y-axis: distinct deal count.</p><div id="pl-tg" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=靶点 Target；Y=独立交易笔数 Deals。核心：识别海外授权最活跃的靶点。Identifies the most active licensing-out targets.</div></div>
+    <div class="card"><h3><span class="zh">市场热点 · 药物形式 Top 10</span> <span class="en">Market Hotspots · Modality Top 10</span></h3><p class="hint">纵轴：独立交易笔数（按 deal_id 去重）。Y-axis: distinct deal count.</p><div id="pl-md" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=独立交易笔数 Deals。核心：识别最活跃的技术路线。Identifies the most active modalities.</div></div>
+    <div class="card"><h3><span class="zh">市场热点 · 药物形式应用广度</span> <span class="en">Market Hotspots · Modality Coverage: Targets & Assets</span></h3><p class="hint">各药物形式对应的去重靶点数与去重资产数（并排柱，不表示可相加）。Distinct targets and assets per modality (grouped bars, not additive).</p><div id="pl-cov" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=数量 Count（并排柱：去重靶点数 Targets / 去重资产数 Assets）。核心：分别比较各技术路线的覆盖广度。X=Modality; Y=count (grouped bars: distinct targets / distinct assets).</div></div>
   </div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>市场热点 · Modality 应用广度 Market Hotspots · Coverage</h3><p class="hint">各药物形式对应的不同靶点数与去重资产数。Distinct targets and assets per modality.</p><div id="pl-cov" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=数量 Count（堆叠：靶点数 Targets + 去重资产数 Assets）。核心：展示各技术路线覆盖的靶点与去重资产广度。X=Modality; Y=count (stacked: distinct targets + distinct assets).</div></div>
-    <div class="card"><h3>市场热点 · Target × Modality 热力图 Market Hotspots · Heatmap</h3>
+    <div class="card"><h3><span class="zh">市场热点 · 靶点 Top 10</span> <span class="en">Market Hotspots · Target Top 10</span></h3><p class="hint">纵轴：独立交易笔数（按 deal_id 去重）。Y-axis: distinct deal count.</p><div id="pl-tg" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=靶点 Target；Y=独立交易笔数 Deals。核心：识别海外授权最活跃的靶点。Identifies the most active licensing-out targets.</div></div>
+    <div class="card"><h3><span class="zh">市场热点 · Target × Modality 热力图</span> <span class="en">Market Hotspots · Heatmap</span></h3>
       <div class="metric-switch" id="pl-heat-metric"></div><div id="pl-heat" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=靶点 Target；颜色越深代表数值越大。可在右上角切换指标：交易笔数 Deals / 去重资产 Assets。本图仅统计已知有效分类（排除未披露、Other、Unknown），用于识别最活跃或布局最广的 Target × Modality 组合。X=Modality; Y=Target; darker color = higher value. Switch metric (deal count / distinct assets) at top-right; only known classifications are included (undisclosed, Other and Unknown excluded).</div></div>
   </div>
 
-  <div class="card" style="margin-top:14px"><h3>交易价值 · Target × Modality 价值气泡图 Deal Value · Bubble</h3>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">交易价值 · Target × Modality 价值气泡图</span> <span class="en">Deal Value · Bubble</span></h3>
     <p class="hint">气泡大小=独立交易笔数；颜色=单笔金额中位数或首付款中位数（仅已披露且可归属）。Bubble size=distinct deal count; color=median total value or median upfront (disclosed & attributable only).</p>
     <div class="metric-switch" id="pl-value-color"></div><div id="pl-value" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=靶点 Target；气泡大小=独立交易笔数；颜色=中位金额。核心：识别交易价值更高的组合。Identifies combos with higher deal value.</div></div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>时间趋势 · Modality 年度活跃度 Time Trends · Activity</h3><div id="pl-trend" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=年份 Year；Y=独立交易笔数 Deals。核心：各技术路线年度活跃度变化。Annual deal activity by modality.</div></div>
-    <div class="card"><h3>时间趋势 · Modality 年度占比 Time Trends · Share</h3><div id="pl-share" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=年份 Year；Y=年度交易占比 %。核心：技术路线在授权结构中的占比变化。Annual share of each modality.</div></div>
+    <div class="card"><h3><span class="zh">时间趋势 · Modality 年度活跃度</span> <span class="en">Time Trends · Activity</span></h3><div id="pl-trend" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=年份 Year；Y=独立交易笔数 Deals。核心：各技术路线年度活跃度变化。Annual deal activity by modality.</div></div>
+    <div class="card"><h3><span class="zh">时间趋势 · Modality 年度占比</span> <span class="en">Time Trends · Share</span></h3><div id="pl-share" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=年份 Year；Y=年度交易占比 %。核心：技术路线在授权结构中的占比变化。Annual share of each modality.</div></div>
   </div>
 
-  <div class="card" style="margin-top:14px"><h3>时间趋势 · 近期增长 Time Trends · Recent Growth</h3><div id="pl-growth"></div><div class="hint" style="margin-top:8px">核心：对比近期与上一期间的活跃度与占比变化，识别升温技术路线。Compares recent vs prior period to spot rising modalities.</div></div>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">时间趋势 · 近期增长</span> <span class="en">Time Trends · Recent Growth</span></h3><div id="pl-growth"></div><div class="hint" style="margin-top:8px">核心：对比近期与上一期间的活跃度与占比变化，识别升温技术路线。Compares recent vs prior period to spot rising modalities.</div></div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>研发成熟度 · Modality × 阶段 Development Maturity · Stage</h3>
+    <div class="card"><h3><span class="zh">研发成熟度 · Modality × 阶段</span> <span class="en">Development Maturity · Stage</span></h3>
       <div class="metric-switch" id="pl-mat-metric"></div><div id="pl-maturity" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=交易笔数或去重资产；系列=研发阶段。核心：各技术路线的资产成熟度分布。Stage maturity by modality.</div></div>
-    <div class="card"><h3>研发成熟度 · 阶段 × 金额 Development Maturity · Value</h3><div id="pl-stagebox" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=研发阶段 Stage；Y=单笔金额 US$M。核心：金额是否随研发阶段变化。Deal value by stage.</div></div>
+    <div class="card"><h3><span class="zh">研发成熟度 · 阶段 × 金额</span> <span class="en">Development Maturity · Value</span></h3><div id="pl-stagebox" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=研发阶段 Stage；Y=单笔金额 US$M。核心：金额是否随研发阶段变化。Deal value by stage.</div></div>
   </div>
 
-  <div class="card" style="margin-top:14px"><h3>综合机会矩阵 Opportunity Matrix · Target × Modality</h3>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">综合机会矩阵</span> <span class="en">Opportunity Matrix · Target × Modality</span></h3>
     <p class="hint">X=交易活跃度（独立交易笔数），Y=交易价值（单笔金额中位数），大小=近期交易数量，颜色=增长趋势。样本量不足/披露率低的组合不应视为确定性机会。X=deal count (heat), Y=median deal value; size=recent deals; color=growth.</p>
     <div id="pl-opp" class="chart ch-lg"></div><div class="hint" style="margin-top:8px">核心：定位热度—价值—增长兼备的组合。Positions combos by heat, value and growth.</div></div>
 
-  <div class="card" style="margin-top:14px"><h3>资产管线 Asset Pipeline</h3>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">资产管线</span> <span class="en">Asset Pipeline</span></h3>
     <p class="hint">代表性资产的研发阶段、临床进展与交易事件。金额为“关联交易金额”，同一交易可能关联多个资产，不可简单求和。Amounts are associated deal amounts; a deal may involve multiple assets and must not be summed as market totals.</p>
     <div id="pl-assets"></div><div class="hint" style="margin-top:8px">核心：资产明细与关联交易金额（同一交易可能关联多个资产）。Asset detail with associated deal values.</div></div>`;
 
@@ -757,14 +759,18 @@ function renderPipeline(deals){
     xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), name:'药物形式 Modality', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:26, nameTextStyle:{color:'#8b9bb0'}},
     series:[{type:'bar', barMaxWidth:28, data:mdList.map(m=>({value:m.n, itemStyle:{color:modColor(m.modality), borderRadius:[4,4,0,0]}}))}] });
 
-  // 模块1 B：覆盖表
-  mount('pl-cov', { tooltip:{...TOOLTIP_DARK, trigger:'axis', axisPointer:{type:'shadow'}, formatter: ps=>{ const xi=ps[0].dataIndex; const m=mdList[xi]; return `${labelOf('modality',m.modality)}<br/>交易笔数 Deals：<b>${m.n}</b><br/>靶点数 Targets：<b>${m.tg.size}</b><br/>去重资产数 Assets：<b>${m.assets.size}</b>`; }},
-    legend:{top:0, textStyle:{fontSize:11, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
-    grid:{left:8,right:8,top:26,bottom:8,containLabel:true},
-    xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
-    yAxis:{type:'value', ...AXIS, name:'数量 Count', nameTextStyle:{color:'#8b9bb0'}},
-    series:[{name:'靶点数 Targets', type:'bar', stack:'total', itemStyle:{color:'#2dd4bf'}, data:mdList.map(m=>m.tg.size)},
-            {name:'去重资产数 Assets', type:'bar', stack:'total', itemStyle:{color:'#60a5fa'}, data:mdList.map(m=>m.assets.size)}] });
+  // 模块1 B：药物形式应用广度（并排柱，不表示可相加）
+  mount('pl-cov', {
+    tooltip:{...TOOLTIP_DARK, trigger:'axis', axisPointer:{type:'shadow'}},
+    legend:{top:0, data:['去重靶点数 Targets','去重资产数 Assets'], textStyle:{fontSize:11, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
+    grid:{left:16,right:8,top:26,bottom:24,containLabel:true},
+    xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), name:'药物形式 Modality', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    yAxis:{type:'value', ...AXIS, name:'数量 Count', nameLocation:'middle', nameGap:28, nameTextStyle:{color:'#8b9bb0'}},
+    series:[
+      {name:'去重靶点数 Targets', type:'bar', barMaxWidth:16, itemStyle:{color:'#2dd4bf', borderRadius:[4,4,0,0]}, data:mdList.map(m=>m.tg.size)},
+      {name:'去重资产数 Assets', type:'bar', barMaxWidth:16, itemStyle:{color:'#60a5fa', borderRadius:[4,4,0,0]}, data:mdList.map(m=>m.assets.size)}
+    ]
+  });
 
   // 模块1 C：热力图（笔数 / 去重资产）
   const modsShown = MODS.filter(m=>m.k!=='Other');
