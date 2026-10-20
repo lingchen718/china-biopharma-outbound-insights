@@ -30,7 +30,8 @@
   .topbar { position: sticky; top: 0; z-index: 40; background: rgba(13,19,34,.92); backdrop-filter: saturate(150%) blur(8px); border-bottom: 1px solid var(--line); }
   .topbar-inner { max-width: 1480px; margin: 0 auto; padding: 12px 24px 10px; display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
   .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-  .brand .logo { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 10px; background: linear-gradient(135deg, var(--accent), #f59e0b); color: #1c1700; display: grid; place-items: center; font-weight: 800; font-size: 16px; }
+  .brand .logo { width: 36px; height: 36px; flex: 0 0 auto; border-radius: 50%; background: radial-gradient(circle at 50% 42%, #1e2a3d, #0b1120 70%); border: 1px solid rgba(250,204,21,.45); display: grid; place-items: center; overflow: hidden; box-shadow: 0 0 12px rgba(250,204,21,.35); }
+  .brand .logo svg { display: block; filter: drop-shadow(0 0 3px rgba(250,204,21,.8)); }
   .brand h1 { font-size: 16px; margin: 0; letter-spacing: .2px; white-space: nowrap; }
   .brand p { margin: 2px 0 0; font-size: 11px; color: var(--muted); white-space: nowrap; }
   .nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-start; }
@@ -135,7 +136,14 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <div class="logo">药</div>
+        <div class="logo" aria-label="Cat Eye">
+          <svg viewBox="0 0 36 36" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 18 C 10 6, 26 6, 30 18 C 26 30, 10 30, 6 18 Z" fill="#facc15" stroke="#fde047" stroke-width="1.2"/>
+            <ellipse cx="18" cy="18" rx="2.3" ry="9.2" fill="#0b1120"/>
+            <circle cx="12.5" cy="12" r="2.4" fill="#ffffff"/>
+            <circle cx="22" cy="23" r="1.1" fill="#ffffff" opacity="0.75"/>
+          </svg>
+        </div>
         <div>
           <h1>中国生物医药出海交易洞察</h1>
           <p>China Biopharma Licensing-out Deal Intelligence · 2019–2026 YTD · 演示 Demo</p>
