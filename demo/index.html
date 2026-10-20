@@ -732,7 +732,7 @@ function renderPipeline(deals){
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3><span class="zh">市场热点 · 靶点 Top 10</span> <span class="en">Market Hotspots · Target Top 10</span></h3><p class="hint">纵轴：独立交易笔数（按 deal_id 去重）。Y-axis: distinct deal count.</p><div id="pl-tg" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=靶点 Target；Y=独立交易笔数 Deals。核心：识别海外授权最活跃的靶点。Identifies the most active licensing-out targets.</div></div>
     <div class="card"><h3><span class="zh">市场热点 · Target × Modality 热力图</span> <span class="en">Market Hotspots · Heatmap</span></h3>
-      <div class="metric-switch" id="pl-heat-metric"></div><div id="pl-heat" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=靶点 Target；颜色越深代表数值越大。可在右上角切换指标：交易笔数 Deals / 去重资产 Assets。本图仅统计已知有效分类（排除未披露、Other、Unknown），用于识别最活跃或布局最广的 Target × Modality 组合。X=Modality; Y=Target; darker color = higher value. Switch metric (deal count / distinct assets) at top-right; only known classifications are included (undisclosed, Other and Unknown excluded).</div></div>
+      <div class="metric-switch" id="pl-heat-metric"></div><div id="pl-heat" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=靶点 Target；颜色越亮（越黄）数值越大。可在右上角切换指标：交易笔数 Deals / 去重资产 Assets。本图仅统计已知有效分类（排除未披露、Other、Unknown），用于识别最活跃或布局最广的 Target × Modality 组合。X=Modality; Y=Target; brighter color = higher value. Switch metric (deal count / distinct assets) at top-right; only known classifications are included (undisclosed, Other and Unknown excluded).</div></div>
   </div>
 
   <div class="card" style="margin-top:14px"><h3><span class="zh">交易价值 · Target × Modality 价值气泡图</span> <span class="en">Deal Value · Bubble</span></h3>
