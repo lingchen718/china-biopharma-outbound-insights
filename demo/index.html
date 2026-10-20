@@ -74,7 +74,7 @@
   .card h3 .zh { color: var(--ink); }
   .card h3 .en { color: #fde68a; }
   .card .hint { color: var(--muted); font-size: 12px; margin: 0 0 10px; line-height: 1.5; }
-  .chart { width: 100%; overflow: hidden; }
+  .chart { width: 100%; }
   .ch-sm { height: 220px; } .ch-md { height: 280px; } .ch-lg { height: 340px; }
 
   .metric-switch, .dim-switch { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -327,7 +327,7 @@ let chartRegistry = [];
 function mount(id, option){ const el=document.getElementById(id); if(!el) return null; const c=echarts.init(el); c.setOption(option); chartRegistry.push(c); return c; }
 function clearCharts(){ chartRegistry.forEach(c=>c.dispose()); chartRegistry=[]; }
 const AXIS = { axisLine:{lineStyle:{color:'#2a3b55'}}, axisLabel:{color:'#8b9bb0', fontSize:11}, splitLine:{lineStyle:{color:'#1d2a40'}}, nameGap:12 };
-const TOOLTIP_DARK = { backgroundColor:'#111827', borderColor:'#223047', textStyle:{color:'#e6edf3', fontSize:12} };
+const TOOLTIP_DARK = { backgroundColor:'#111827', borderColor:'#223047', textStyle:{color:'#e6edf3', fontSize:12}, confine:true };
 
 function colorOf(dim, v){
   if(dim==='modality') return MODMAP[v]?MODMAP[v].c:'#94a3b8';
@@ -741,7 +741,7 @@ function renderPipeline(deals){
 
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3><span class="zh">时间趋势 · Modality 年度活跃度</span> <span class="en">Time Trends · Activity</span></h3><div id="pl-trend" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=年份 Year；Y=独立交易笔数 Deals。核心：追踪各药物形式的年度授权活跃度，识别持续活跃、近期升温或下降的技术路线。按独立 Deal 去重；一笔交易涉及多个 Modality 时会在对应多个系列中重复关联，故各系列笔数不可直接相加。Tracks annual licensing-out activity by modality to spot rising, stable or declining routes; deduplicated by deal, with multi-modality deals counted in each relevant series (series counts are not mutually exclusive).</div></div>
-    <div class="card"><h3><span class="zh">时间趋势 · Modality 年度占比</span> <span class="en">Time Trends · Share</span></h3><div id="pl-share" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=年份 Year；Y=年度交易占比 %（100% 堆叠）。核心：展示各药物形式在授权交易结构中的相对份额变化，识别技术路线的结构性转移。占比分母仅含已知有效分类（排除未披露/Other/Unknown）；多 Modality 交易按多标签统计，各系列占比之和为 100%。Shows each modality’s relative share of annual deals (100% stacked) to reveal structural shifts; the denominator includes known classifications only (undisclosed / Other / Unknown excluded). Multi-modality deals use multi-label counting.</div></div>
+    <div class="card"><h3><span class="zh">时间趋势 · Modality 年度占比</span> <span class="en">Time Trends · Share</span></h3><div id="pl-share" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=年份 Year；Y=年度交易占比 %（100% 堆叠）。核心：展示各药物形式在授权交易结构中的相对份额变化，识别技术路线的结构性转移。占比分母仅含已知有效分类（排除未披露/Other/Unknown）；多 Modality 交易按多标签统计，各系列占比之和为 100%。Shows each modality’s relative share of annual deals (100% stacked) to reveal structural shifts; the denominator includes known classifications only (undisclosed / Other / Unknown excluded). Multi-modality deals use multi-label counting.</div><div id="pl-share-legend" class="size-legend" style="margin-top:6px"></div></div>
   </div>
 
   <div class="card" style="margin-top:14px"><h3><span class="zh">时间趋势 · 近期增长</span> <span class="en">Time Trends · Recent Growth</span></h3><div id="pl-growth"></div><div class="hint" style="margin-top:8px">核心：对比近期与上一期间的活跃度与占比变化，识别升温技术路线。Compares recent vs prior period to spot rising modalities.</div></div>
@@ -817,6 +817,7 @@ function renderPipeline(deals){
     grid:{left:16,right:8,top:26,bottom:24,containLabel:true},
     xAxis:{type:'category', data:yrs.map(y=>String(y)), name:'年份 Year', nameTextStyle:{color:'#8b9bb0'}, ...AXIS}, yAxis:{type:'value', ...AXIS, max:100, name:'年度占比 %', nameTextStyle:{color:'#8b9bb0'}, axisLabel:{color:'#8b9bb0', fontSize:11, formatter:'{value}%'}},
     series:modsShown.map(m=>({name:labelOf('modality',m.k), type:'line', stack:'total', smooth:true, symbol:'none', areaStyle:{opacity:.6}, color:modColor(m.k), data:yrs.map(y=>{ const tot=shareData['__tot'+y]||1; return +(shareData[m.k+y]/tot*100).toFixed(1); })})) });
+  document.getElementById('pl-share-legend').innerHTML = '<span style="color:var(--ink-2)">颜色说明 Color legend：</span>' + modsShown.map(m=>`<span style="display:inline-flex;align-items:center;gap:4px"><i style="width:10px;height:10px;border-radius:2px;background:${modColor(m.k)}"></i>${shortModality(m.k)}</span>`).join('');
 
   // 模块3 C：近期增长表
   const recYrs = yrs.slice(-2), prevYrs = yrs.slice(-4,-2);
