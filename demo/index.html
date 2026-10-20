@@ -936,9 +936,9 @@ function sortCompanies(arr, sort){
 }
 function leaderTableHtml(rows, sort){
   return `<select class="dd-btn" onchange="__companySort(this)">${Object.entries(SORT_LABELS).map(([k,l])=>`<option value="${k}" ${sort===k?'selected':''}>Sort by: ${l}</option>`).join('')}</select>
-  <table class="tbl"><thead><tr><th>公司 Company</th><th>交易 Deals</th><th>披露总额 Disclosed Value</th><th>中位数 Median</th><th>药物形式 Modality</th><th>治疗领域 Therapeutic Area</th></tr></thead><tbody>
+  <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>公司 Company</th><th>交易 Deals</th><th>披露总额 Value</th><th>中位数 Median</th><th>药物形式 Modality</th><th>治疗领域 Areas</th></tr></thead><tbody>
   ${rows.slice(0,12).map(r=>`<tr><td>${r.name}</td><td class="num">${r.deals}</td><td class="num">${fmtM(r.total)}</td><td class="num">${fmtM(r.median)}</td><td class="num">${r.mods}</td><td class="num">${r.inds}</td></tr>`).join('')}
-  </tbody></table>`;
+  </tbody></table></div>`;
 }
 window.__companySort = function(sel){
   const side = sel.closest('.side').querySelector('h3').textContent.includes('中国') ? 'cn' : 'os';
