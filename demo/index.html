@@ -552,7 +552,27 @@ function keyInsight(deals, dim){
   return `<div><b style="color:var(--accent)">关键发现：</b>${cn}</div><div style="margin-top:6px"><b style="color:var(--accent)">Key Insight:</b> ${en}</div>`;
 }
 
-function renderLandscape(deals){
+function keyInsightFromServer(data, dim){
+  const total = data.total||0, cov = data.coverage||0;
+  const counts = data.counts||[], ups = data.upfront||[];
+  const totalUp = sum(ups.map(x=>x.value))||1;
+  const topC = counts[0], topU = ups[0];
+  const um = Object.fromEntries(ups.map(x=>[x.key,x.value]));
+  let gap = topC ? topC.key : null, gm = -1;
+  counts.forEach(x=>{ const cp = total? x.value/total*100:0; const up = um[x.key]? um[x.key]/totalUp*100:0; const g=Math.abs(up-cp); if(g>gm){gm=g; gap=x.key;} });
+  if(!topC) return '';
+  const pctC = total? Math.round(topC.value/total*100):0;
+  const pctU = topU? Math.round(topU.value/totalUp*100):0;
+  const cn = topU
+    ? `<b>${labelOf(dim,topC.key)}</b> 交易数量占比最高（${pctC}%）；<b>${labelOf(dim,topU.key)}</b> 首付款占比最高（${pctU}%）；数量与金额占比差距最大的是 <b>${labelOf(dim,gap)}</b>。`
+    : `<b>${labelOf(dim,topC.key)}</b> 交易数量占比最高（${pctC}%）；数量与金额占比差距最大的是 <b>${labelOf(dim,gap)}</b>。`;
+  const en = topU
+    ? `<b>${labelOf(dim,topC.key)}</b> has the largest deal share (${pctC}%); <b>${labelOf(dim,topU.key)}</b> has the largest disclosed upfront share (${pctU}%); the largest gap between deal share and upfront share is <b>${labelOf(dim,gap)}</b>.`
+    : `<b>${labelOf(dim,topC.key)}</b> has the largest deal share (${pctC}%); the largest gap between deal share and upfront share is <b>${labelOf(dim,gap)}</b>.`;
+  return `<div><b style="color:var(--accent)">关键发现：</b>${cn}</div><div style="margin-top:6px"><b style="color:var(--accent)">Key Insight:</b> ${en}</div>`;
+}
+
+async function renderLandscape(){
   const dims = [
     {key:'stage', t:'按研发阶段 By Asset Stage', q:'At what development stage are the deal assets at signing? This shows whether the market favors early-stage assets or late-stage, near-commercial assets — reflecting risk appetite and asset maturity.', color:STAGE_COLORS},
     {key:'modality', t:'按技术类型 By Modality', q:'Which drug modalities attract more deal attention and upfront payments?', color:Object.fromEntries(MODS.map(m=>[m.k,m.c]))},
@@ -568,16 +588,13 @@ function renderLandscape(deals){
         </div>
         <div class="insight" id="ls-ins-${i}"></div>
       </div>`).join('')}</div>`;
-  dims.forEach((d,i)=>{
-    const disc=deals.filter(x=>x.hasUpfront);
-    const totalUp=sum(disc.map(x=>x.upfront));
-    const counts={}, ups={};
-    deals.forEach(x=>{counts[x[d.key]]=(counts[x[d.key]]||0)+1;});
-    disc.forEach(x=>{ups[x[d.key]]=(ups[x[d.key]]||0)+x.upfront;});
-    mount(`ls-count-${i}`, pieCentered(Object.entries(counts).map(([k,v])=>({name:labelOf(d.key,k), value:v, itemStyle:{color:d.color[k]||'#94a3b8'}})), deals.length, 'Deals'));
-    mount(`ls-up-${i}`, pieCentered(Object.entries(ups).map(([k,v])=>({name:labelOf(d.key,k), value:round2(v), itemStyle:{color:d.color[k]||'#94a3b8'}})), fmtM(totalUp), 'Total Upfront'));
-    document.getElementById(`ls-ins-${i}`).innerHTML = keyInsight(deals, d.key);
-  });
+  const q = stateParams().toString();
+  await Promise.all(dims.map(async (d,i)=>{
+    const data = await fetch(`/api/landscape/${d.key}?${q}`).then(r=>r.json());
+    mount(`ls-count-${i}`, pieCentered((data.counts||[]).map(x=>({name:labelOf(d.key,x.key), value:x.value, itemStyle:{color:d.color[x.key]||'#94a3b8'}})), data.total||0, 'Deals'));
+    mount(`ls-up-${i}`, pieCentered((data.upfront||[]).map(x=>({name:labelOf(d.key,x.key), value:round2(x.value), itemStyle:{color:d.color[x.key]||'#94a3b8'}})), fmtM(sum((data.upfront||[]).map(x=>x.value))), 'Total Upfront'));
+    document.getElementById(`ls-ins-${i}`).innerHTML = keyInsightFromServer(data, d.key);
+  }));
 }
 
 // ===== 交易金额 =====
@@ -666,26 +683,60 @@ function trendInsight(rows){
   return `<b style="color:var(--accent)">关键发现 Key Insight：</b>Deal Count YoY ${c}；Total Disclosed Upfront YoY ${u}；Total Potential Value YoY ${t}。${extra}`;
 }
 
-function renderEconomics(deals){
-  const disc = deals.filter(d=>d.hasTotal && d.total>0);
-  const nUp = deals.filter(d=>d.hasUpfront).length;
-  const nTot = deals.filter(d=>d.hasTotal).length;
-  const medianUp = median(deals.filter(d=>d.hasUpfront).map(d=>d.upfront));
-  const totalUp = sum(deals.filter(d=>d.hasUpfront).map(d=>d.upfront));
-  const totalV = sum(deals.filter(d=>d.hasTotal).map(d=>d.total));
-  const upCov = Math.round(nUp/deals.length*100);
-  const totCov = Math.round(nTot/deals.length*100);
-  const derivable = deals.filter(d=>d.milestoneDerivable && d.milestone>0);
+function trendBarOptionFromServer(rows, metric, gran){
+  const valKey = metric==='count'?'deals':metric==='up'?'upfront':'total_value';
+  const yoyKey = metric==='count'?'count_yoy':metric==='up'?'upfront_yoy':'total_yoy';
+  const interval = rows.length>36 ? Math.ceil(rows.length/12) : 0;
+  const byYear = gran==='quarter' || gran==='month';
+  const yrOf = r => String(r.period).slice(0,4);
+  const yearSet = byYear ? [...new Set(rows.map(yrOf))].sort() : [];
+  const colorFor = r => byYear ? (YEAR_COLORS[yrOf(r)] || '#facc15') : '#facc15';
+  const option = {
+    tooltip:{...TOOLTIP_DARK, trigger:'axis', axisPointer:{type:'shadow'}, formatter: ps=>{
+      const r=ps[0].data._r;
+      if(metric==='count') return `${r.period}<br/>Deals：<b>${r.deals}</b><br/>YoY：${fmtYoY(r.count_yoy)}`;
+      const title = metric==='up' ? 'Total Disclosed Upfront' : 'Total Potential Value';
+      const n = metric==='up' ? r.up_n : r.tot_n;
+      const rate = metric==='up' ? (r.deals?Math.round(r.up_n/r.deals*100):0) : (r.deals?Math.round(r.tot_n/r.deals*100):0);
+      return `${r.period}<br/>${title}：<b>${fmtM(r[valKey])}</b><br/>已披露笔数 Disclosed deals：<b>${n}</b><br/>披露率 Disclosure rate：<b>${rate}%</b><br/>YoY：${fmtYoY(r[yoyKey])}`;
+    }},
+    grid:{left:8,right:20,top: byYear?46:34, bottom:8, containLabel:true},
+    xAxis:{type:'category', data:rows.map(r=>r.period), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate: rows.length>6?45:0, interval}},
+    yAxis:{type:'value', ...AXIS, name: metric==='count'?'Deals':'US$M', nameTextStyle:{color:'#8b9bb0'}, nameGap:12},
+    series:[{type:'bar', barMaxWidth:34, data:rows.map(r=>({value:r[valKey], itemStyle:{color:colorFor(r), borderRadius:[4,4,0,0]}, _r:r}))}]
+  };
+  if(byYear){
+    option.legend = {top:0, data: yearSet.map(y=>({name:String(y), icon:'rect', itemStyle:{color:YEAR_COLORS[y]}})), textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8};
+  }
+  return option;
+}
+function latestYoYFromServer(rows, yoyKey){
+  const r=[...(rows||[])].reverse().find(x=>x[yoyKey]!=null);
+  return r ? `${r.period}：${fmtYoY(r[yoyKey])}` : 'N/A';
+}
+
+async function renderEconomics(){
+  const q = stateParams().toString();
+  const tq = new URLSearchParams(q); tq.set('granularity', ecoGran);
+  const [snap, trends, dist, bubble, mile] = await Promise.all([
+    fetch('/api/economics/snapshot?'+q).then(r=>r.json()),
+    fetch('/api/economics/activity-value-trends?'+tq.toString()).then(r=>r.json()),
+    fetch('/api/economics/distribution?'+q).then(r=>r.json()),
+    fetch('/api/economics/bubble?'+q).then(r=>r.json()),
+    fetch('/api/economics/milestones?'+q).then(r=>r.json())
+  ]);
+  const totalRows = snap.total_rows||0;
+  const nUp = snap.upfront_deals||0, nTot = snap.total_deals_count||0;
+  const upCov = totalRows? Math.round(nUp/totalRows*100):0, totCov = totalRows? Math.round(nTot/totalRows*100):0;
   const colorLegend = MODS.map(m=>`<span style="display:inline-flex;align-items:center;gap:4px"><i style="width:10px;height:10px;border-radius:50%;background:${m.c}"></i>${m.k}</span>`).join('');
-  const rows = trendRows(deals, ecoGran);
 
   main.innerHTML = title('交易金额 Deal Economics', PAGE_EN.economics) +
   `<div class="kpis" style="grid-template-columns:repeat(5,1fr)">
-    ${[ ['已披露首付款笔数 Deals with Disclosed Upfronts', fmtInt(nUp)+' / '+fmtInt(deals.length), upCov+'% coverage'],
-        ['已披露首付款总额 Total Disclosed Upfront', fmtM(totalUp), 'US$'],
-        ['已披露首付款中位数 Median Upfront', fmtM(medianUp), 'US$M / deal'],
-        ['已披露总额笔数 Total Disclosed Deals', fmtInt(nTot)+' / '+fmtInt(deals.length), totCov+'% coverage'],
-        ['潜在总额 Total Potential Value', fmtM(totalV), 'US$'] ]
+    ${[ ['已披露首付款笔数 Deals with Disclosed Upfronts', fmtInt(nUp)+' / '+fmtInt(totalRows), upCov+'% coverage'],
+        ['已披露首付款总额 Total Disclosed Upfront', fmtM(snap.total_upfront), 'US$'],
+        ['已披露首付款中位数 Median Upfront', fmtM(snap.median_upfront), 'US$M / deal'],
+        ['已披露总额笔数 Total Disclosed Deals', fmtInt(nTot)+' / '+fmtInt(totalRows), totCov+'% coverage'],
+        ['潜在总额 Total Potential Value', fmtM(snap.total_value), 'US$'] ]
       .map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}
   </div>
 
@@ -714,50 +765,52 @@ function renderEconomics(deals){
     <p class="hint">Derived as total − upfront only when the consideration is consistent and separable; deals with equity/royalty components are marked Not Derivable.</p>
     <div id="ec-milestone"></div></div>`;
 
-  // 趋势三图 + 时间粒度切换
+  // 趋势三图
   wireSwitch('eco-gran', {year:'Year 年', quarter:'Quarter 季度', month:'Month 月'}, ecoGran, v=>{ ecoGran=v; render(); });
-  const c1 = mount('eco-count', trendBarOption(rows,'count','#60a5fa',ecoGran));
-  const c2 = mount('eco-up', trendBarOption(rows,'up','#facc15',ecoGran));
-  const c3 = mount('eco-tot', trendBarOption(rows,'tot','#fbbf24',ecoGran));
-  [c1,c2,c3].forEach(c=>{ if(c) c.on('click', p=>{ const y=+String(p.data._r.key).slice(0,4); state.years=[y,y]; state.page='explorer'; state.search=''; render(); }); });
-  document.getElementById('eco-count-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'countYoY');
-  document.getElementById('eco-up-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'upYoY');
-  document.getElementById('eco-tot-yoy').textContent = '最新完整期间 YoY：' + latestYoY(rows,'totYoY');
+  const rows = trends.rows||[];
+  const c1 = mount('eco-count', trendBarOptionFromServer(rows,'count',ecoGran));
+  const c2 = mount('eco-up', trendBarOptionFromServer(rows,'up',ecoGran));
+  const c3 = mount('eco-tot', trendBarOptionFromServer(rows,'tot',ecoGran));
+  [c1,c2,c3].forEach(c=>{ if(c) c.on('click', p=>{ const y=+String(p.data._r.period).slice(0,4); state.years=[y,y]; state.page='explorer'; state.search=''; render(); }); });
+  document.getElementById('eco-count-yoy').textContent = '最新完整期间 YoY：' + latestYoYFromServer(rows,'count_yoy');
+  document.getElementById('eco-up-yoy').textContent = '最新完整期间 YoY：' + latestYoYFromServer(rows,'upfront_yoy');
+  document.getElementById('eco-tot-yoy').textContent = '最新完整期间 YoY：' + latestYoYFromServer(rows,'total_yoy');
 
-  // 箱线图（x 轴标注样本量 n，tooltip 显示五数概括）
-  const mods = MODS.map(m=>m.k).filter(m=>disc.some(d=>d.modality===m));
-  const modNs = mods.map(m=>({m, n: disc.filter(d=>d.modality===m).length}));
+  // 箱线图（来自服务端 boxplot，含 n）
+  const box = dist.boxplot||[];
   mount('ec-box', {
     tooltip:{...TOOLTIP_DARK, trigger:'item', formatter: ps=>{
-      const x = modNs[ps[0].dataIndex];
-      const q = quartiles(disc.filter(d=>d.modality===x.m).map(d=>d.total));
-      return `${labelOf('modality',x.m)}（n=${x.n}）<br/>Min: ${fmtM(q[0])}<br/>Q1: ${fmtM(q[1])}<br/>Median: ${fmtM(q[2])}<br/>Q3: ${fmtM(q[3])}<br/>Max: ${fmtM(q[4])}`;
+      const b = box[ps[0].dataIndex]; if(!b) return '';
+      return `${labelOf('modality',b.modality)}（n=${b.n}）<br/>Min: ${fmtM(b.q[0])}<br/>Q1: ${fmtM(b.q[1])}<br/>Median: ${fmtM(b.q[2])}<br/>Q3: ${fmtM(b.q[3])}<br/>Max: ${fmtM(b.q[4])}`;
     }},
     grid:{left:8,right:8,top:24,bottom:8,containLabel:true},
-    xAxis:{type:'category', data:modNs.map(x=>`${labelOf('modality',x.m)} (n=${x.n})`), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    xAxis:{type:'category', data:box.map(b=>`${labelOf('modality',b.modality)} (n=${b.n})`), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'value', ...AXIS, name:'US$M', nameTextStyle:{color:'#8b9bb0'}},
-    series:[{type:'boxplot', data:modNs.map(x=>quartiles(disc.filter(d=>d.modality===x.m).map(d=>d.total))), itemStyle:{color:'#facc15', borderColor:'#fde047'}, boxWidth:[12,28]}]
+    series:[{type:'boxplot', data:box.map(b=>b.q), itemStyle:{color:'#facc15', borderColor:'#fde047'}, boxWidth:[12,28]}]
   });
-  // 气泡图（面积映射首付款 + jitter）
-  const bubbleData = disc.map((d,idx)=>({
-    value:[STAGES.indexOf(d.stage) + ((idx%5)-2)*0.07, d.total],
-    name:d.asset, itemStyle:{color:modColor(d.modality)}, symbol:DTYPE_SYMBOL[d.dealType]||'circle',
-    symbolSize: 2*Math.sqrt((40 + (d.upfront||1)*4)/Math.PI), _d:d
+
+  // 气泡图（来自服务端 bubble.deals）
+  const bd = (bubble.deals||[]).map((d,idx)=>({
+    value:[STAGES.indexOf(d.stage) + ((idx%5)-2)*0.07, d.total_value_musd],
+    name:d.asset, itemStyle:{color:modColor(d.modality)}, symbol:DTYPE_SYMBOL[d.deal_type]||'circle',
+    symbolSize: 2*Math.sqrt((40 + (d.upfront_musd||1)*4)/Math.PI), _d:d
   }));
+  const bmods = [...new Set((bubble.deals||[]).map(d=>d.modality))];
   mount('ec-bubble', {
     tooltip:{...TOOLTIP_DARK, formatter:p=>{const d=p.data._d;
-      return `<b>${d.licensor} × ${d.licensee}</b><br/>${labelOf('dealType',d.dealType)} · ${d.date}<br/><br/>Total Potential Value：<b>${fmtM(d.total)}</b><br/>Upfront Payment：<b>${fmtM(d.upfront)}</b><br/>Milestone：${d.milestoneDerivable?fmtM(d.milestone):'Not Derivable'}<br/><br/>Asset：${d.asset} · ${labelOf('indication',d.indication)}<br/>Modality：${labelOf('modality',d.modality)} · Stage：${labelOf('stage',d.stage)}<br/>Region：${d.country}（${labelOf('region',d.region)}）`; }},
-    legend:{top:0, data:mods.map(m=>({name:labelOf('modality',m), icon:'circle'})), textStyle:{fontSize:11, color:'#cbd5e1'}, itemWidth:9, itemHeight:9},
+      return `<b>${d.licensor} × ${d.licensee}</b><br/>${labelOf('dealType',d.deal_type)} · ${d.date}<br/><br/>Total Potential Value：<b>${fmtM(d.total_value_musd)}</b><br/>Upfront Payment：<b>${fmtM(d.upfront_musd)}</b><br/>Milestone：${d.milestone_derivable?fmtM(d.milestone_musd):'Not Derivable'}<br/><br/>Asset：${d.asset} · ${labelOf('indication',d.indication)}<br/>Modality：${labelOf('modality',d.modality)} · Stage：${labelOf('stage',d.stage)}<br/>Region：${labelOf('region',d.region)}`; }},
+    legend:{top:0, data:bmods.map(m=>({name:labelOf('modality',m), icon:'circle'})), textStyle:{fontSize:11, color:'#cbd5e1'}, itemWidth:9, itemHeight:9},
     grid:{left:8,right:8,top:30,bottom:44,containLabel:true},
     xAxis:{type:'category', data:STAGES.map(s=>labelOf('stage',s)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}, splitLine:{show:true, lineStyle:{color:'#223047', type:'dashed'}}},
     yAxis:{type:'log', ...AXIS, name:'$M', nameTextStyle:{color:'#8b9bb0'}, splitNumber:10, minorSplitLine:{show:true, lineStyle:{color:'#1a2740', type:'dashed'}}},
-    series:[{type:'scatter', data:bubbleData}]
+    series:[{type:'scatter', data:bd}]
   });
-  // 里程碑 top
-  const topM = derivable.sort((a,b)=>b.milestone-a.milestone).slice(0,10);
+
+  // 里程碑
+  const topM = mile.milestones||[];
   document.getElementById('ec-milestone').innerHTML = `<table class="tbl"><thead><tr><th>资产 Asset</th><th>中国授权方 Licensor</th><th>海外引进方 Licensee</th><th>首付款 Upfront</th><th>潜在总额 Total Value</th><th>里程碑（派生） Milestone (Derived)</th></tr></thead><tbody>
-    ${topM.map(d=>`<tr onclick="openDeal('${d.id}')"><td>${d.asset}</td><td>${d.licensor}</td><td>${d.licensee}</td><td class="num">${fmtM(d.upfront)}</td><td class="num">${fmtM(d.total)}</td><td class="num" style="color:var(--accent);font-weight:600">${fmtM(d.milestone)}</td></tr>`).join('')}
-  </tbody></table><div class="hint" style="margin-top:10px">Not Derivable (deals with equity/royalty components that cannot be split): <b>${deals.filter(d=>d.disclosed && !d.milestoneDerivable).length}</b> disclosed deals excluded from the milestone ranking.</div>`;
+    ${topM.map(d=>`<tr onclick="openDeal('${d.id}')"><td>${d.asset}</td><td>${d.licensor}</td><td>${d.licensee}</td><td class="num">${fmtM(d.upfront_musd)}</td><td class="num">${fmtM(d.total_value_musd)}</td><td class="num" style="color:var(--accent);font-weight:600">${fmtM(d.milestone_musd)}</td></tr>`).join('')}
+  </tbody></table><div class="hint" style="margin-top:10px">Not Derivable (deals with equity/royalty components that cannot be split): <b>${mile.not_derivable||0}</b> disclosed deals excluded from the milestone ranking.</div>`;
 }
 
 // ===== 技术与管线 =====
@@ -1192,9 +1245,11 @@ function openCompany(name){
 async function renderMain(){
   clearCharts();
   if(state.page==='overview'){ await renderOverview(); return; }
+  if(state.page==='landscape'){ await renderLandscape(); return; }
+  if(state.page==='economics'){ await renderEconomics(); return; }
   const deals=filtered();
-  const pages={landscape:renderLandscape, economics:renderEconomics, pipeline:renderPipeline, therapy:renderTherapy, companies:renderCompanies, explorer:renderExplorer};
-  (pages[state.page]||renderLandscape)(deals);
+  const pages={pipeline:renderPipeline, therapy:renderTherapy, companies:renderCompanies, explorer:renderExplorer};
+  (pages[state.page]||renderPipeline)(deals);
 }
 function syncNav(){ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.page===state.page)); }
 function syncFilterbar(){

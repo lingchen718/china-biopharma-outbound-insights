@@ -113,14 +113,16 @@ def ep_landscape(qs, dim):
     up_n = one("SELECT COUNT(*) AS n FROM deals"+base+" AND has_upfront=1", a)["n"]
     return {"total": total, "coverage": round(up_n/total*100) if total else 0, "counts": counts, "upfront": up}
 
-def ep_economics_snapshot():
+def ep_economics_snapshot(qs):
+    w, a = filter_clause(qs)
+    base = w if w else " WHERE 1=1"
     return {
-        "upfront_deals": one("SELECT COUNT(*) n FROM deals WHERE has_upfront=1")["n"],
-        "total_deals_count": one("SELECT COUNT(*) n FROM deals WHERE has_total=1")["n"],
-        "total_rows": one("SELECT COUNT(*) n FROM deals")["n"],
-        "total_upfront": one("SELECT COALESCE(SUM(upfront_musd),0) v FROM deals WHERE has_upfront=1")["v"],
-        "median_upfront": median([r["v"] for r in rows("SELECT upfront_musd v FROM deals WHERE has_upfront=1")]),
-        "total_value": one("SELECT COALESCE(SUM(total_value_musd),0) v FROM deals WHERE has_total=1")["v"],
+        "upfront_deals": one("SELECT COUNT(*) n FROM deals" + base + " AND has_upfront=1", a)["n"],
+        "total_deals_count": one("SELECT COUNT(*) n FROM deals" + base + " AND has_total=1", a)["n"],
+        "total_rows": one("SELECT COUNT(*) n FROM deals" + base, a)["n"],
+        "total_upfront": one("SELECT COALESCE(SUM(upfront_musd),0) v FROM deals" + base + " AND has_upfront=1", a)["v"],
+        "median_upfront": median([r["v"] for r in rows("SELECT upfront_musd v FROM deals" + base + " AND has_upfront=1", a)]),
+        "total_value": one("SELECT COALESCE(SUM(total_value_musd),0) v FROM deals" + base + " AND has_total=1", a)["v"],
     }
 
 def ep_economics_trends(qs):
@@ -128,10 +130,11 @@ def ep_economics_trends(qs):
     if gran=="quarter": pexpr = "strftime('%Y', date) || '-Q' || ((CAST(strftime('%m', date) AS INTEGER)+2)/3)"
     elif gran=="month": pexpr = "strftime('%Y-%m', date)"
     else: gran="year"; pexpr = "strftime('%Y', date)"
+    w, a = filter_clause(qs)
     data = rows(f"SELECT {pexpr} AS period, COUNT(*) AS deals, SUM(has_upfront) AS up_n, "
                 "COALESCE(SUM(CASE WHEN has_upfront=1 THEN upfront_musd END),0) AS upfront, "
                 "SUM(has_total) AS tot_n, COALESCE(SUM(CASE WHEN has_total=1 THEN total_value_musd END),0) AS total_value "
-                "FROM deals GROUP BY period ORDER BY period")
+                "FROM deals" + w + " GROUP BY period ORDER BY period", a)
     by = {r["period"]: r for r in data}
     def prev(k):
         if gran=="year": return str(int(k)-1)
@@ -144,21 +147,27 @@ def ep_economics_trends(qs):
             r[key] = round((r[metric]-p[metric])/p[metric]*100,1) if (p and p[metric]) else None
     return {"granularity": gran, "rows": data}
 
-def ep_economics_distribution():
-    raw = rows("SELECT modality, total_value_musd v FROM deals WHERE has_total=1")
+def ep_economics_distribution(qs):
+    w, a = filter_clause(qs)
+    base = w if w else " WHERE 1=1"
+    raw = rows("SELECT modality, total_value_musd v FROM deals" + base + " AND has_total=1", a)
     g = {}
     for r in raw: g.setdefault(r["modality"], []).append(r["v"])
     return {"boxplot": [{"modality": k, "n": len(v), "q": quartiles(v)} for k,v in sorted(g.items())]}
 
-def ep_economics_bubble():
+def ep_economics_bubble(qs):
+    w, a = filter_clause(qs)
+    base = w if w else " WHERE 1=1"
     return {"deals": [boolify(r) for r in rows(
         "SELECT deal_id AS id, date, licensor, licensee, asset, target, modality, indication, stage, deal_type, region, "
-        "upfront_musd, total_value_musd, milestone_musd, milestone_derivable FROM deals WHERE has_total=1")]}
+        "upfront_musd, total_value_musd, milestone_musd, milestone_derivable FROM deals" + base + " AND has_total=1", a)]}
 
-def ep_economics_milestones():
+def ep_economics_milestones(qs):
+    w, a = filter_clause(qs)
+    base = w if w else " WHERE 1=1"
     return {"milestones": rows("SELECT deal_id AS id, asset, licensor, licensee, upfront_musd, total_value_musd, milestone_musd "
-        "FROM deals WHERE milestone_derivable=1 ORDER BY milestone_musd DESC LIMIT 10"),
-        "not_derivable": one("SELECT COUNT(*) n FROM deals WHERE has_total=1 AND milestone_derivable=0")["n"]}
+        "FROM deals" + base + " AND milestone_derivable=1 ORDER BY milestone_musd DESC LIMIT 10", a),
+        "not_derivable": one("SELECT COUNT(*) n FROM deals" + base + " AND has_total=1 AND milestone_derivable=0", a)["n"]}
 
 def ep_pipeline_modality():
     cats = [r["v"] for r in rows("SELECT DISTINCT modality AS v FROM deals WHERE modality!='' ORDER BY modality")]
@@ -221,11 +230,11 @@ ENDPOINTS = {
     "/api/overview/kpis": ep_overview_kpis,
     "/api/overview/trends": ep_overview_trends,
     "/api/geo/territory": ep_geo,
-    "/api/economics/snapshot": lambda qs: ep_economics_snapshot(),
+    "/api/economics/snapshot": ep_economics_snapshot,
     "/api/economics/activity-value-trends": ep_economics_trends,
-    "/api/economics/distribution": lambda qs: ep_economics_distribution(),
-    "/api/economics/bubble": lambda qs: ep_economics_bubble(),
-    "/api/economics/milestones": lambda qs: ep_economics_milestones(),
+    "/api/economics/distribution": ep_economics_distribution,
+    "/api/economics/bubble": ep_economics_bubble,
+    "/api/economics/milestones": ep_economics_milestones,
     "/api/pipeline/modality-trend": lambda qs: ep_pipeline_modality(),
     "/api/pipeline/target-rank": lambda qs: ep_pipeline_target(),
     "/api/pipeline/target-modality-heatmap": lambda qs: ep_pipeline_heatmap(),
