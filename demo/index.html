@@ -852,6 +852,7 @@ function renderPipeline(deals){
 
 // ===== 治疗领域 =====
 let therapyArea = 'Oncology';
+let therapyOppValue = 'medianTotal';
 const AREA_HOTSPOTS = {Oncology:['肺癌 NSCLC','乳腺癌 Breast','卵巢癌 Ovarian','胃癌 Gastric','血液瘤 Hematologic'], Autoimmune:['类风湿关节炎 RA','银屑病 Psoriasis','狼疮 SLE','炎症性肠病 IBD'], CNS:['阿尔茨海默 AD','帕金森 PD','疼痛 Pain','抑郁症 MDD'], Metabolic:['肥胖 Obesity','糖尿病 Diabetes','NASH/MASH','高血脂 Dyslipidemia'], Infectious:['HBV','HIV','流感 Influenza','抗感染 Anti-infective'], 'Rare disease':['罕见肿瘤','溶酶体贮积症','血友病 Hemophilia'], Vaccine:['新冠 COVID','流感疫苗','RSV'], Other:['其他']};
 
 function renderTherapy(deals){
@@ -864,7 +865,12 @@ function renderTherapy(deals){
     <p class="hint">选择单个治疗领域，查看其药物形式、研发阶段、公司与交易结构。Select one therapeutic area to explore its modality, stage, companies and deal structure.</p>
     <div style="margin-bottom:10px"><select class="dd-btn" id="th-area">${INDS.map(i=>`<option ${i===therapyArea?'selected':''}>${i}</option>`).join('')}</select></div>
     <div class="grid g2"><div id="th-mod" class="chart ch-md"></div><div id="th-stage" class="chart ch-md"></div></div>
-    <div id="th-co" style="margin-top:10px"></div></div>`;
+    <div id="th-co" style="margin-top:10px"></div></div>
+
+  <div class="card" style="margin-top:14px"><h3><span class="zh">综合机会矩阵</span> <span class="en">Opportunity Matrix · Indication × Modality</span></h3>
+    <p class="hint">结合治疗领域活跃度、交易价值与近期增长趋势，识别核心优势领域、潜在差异化机会及竞争关注领域。Integrates therapeutic-area activity, deal value and recent growth to identify core-advantage areas, potential differentiation opportunities and competitive-watch areas.</p>
+    <div class="metric-switch" id="th-opp-value"></div>
+    <div id="th-opp" class="chart ch-lg"></div><div class="hint" style="margin-top:8px">X=标准化交易活跃度；Y=单笔金额中位数；气泡大小=交易笔数；颜色=近期增长趋势；虚线=样本中位数（四象限：高热度高价值 / 低热度高价值 / 高热度低价值 / 低热度低价值）。X=standardized activity; Y=median deal value; size=deal count; color=recent growth; dashed lines=median thresholds.</div></div>`;
 
   mount('th-trend', buildTrend(deals, 'count', 'indication'));
   document.getElementById('th-hot').innerHTML = `<table class="tbl"><thead><tr><th>治疗领域 Therapeutic Area</th><th>交易笔数 Deals</th><th>热门具体适应症 Indication Hotspots</th></tr></thead><tbody>
@@ -878,6 +884,39 @@ function renderTherapy(deals){
   const co={}; sub.forEach(d=>{ if(!co[d.licensor]) co[d.licensor]={n:0,total:0}; co[d.licensor].n++; if(d.disclosed) co[d.licensor].total+=d.total; });
   const coRows=Object.entries(co).sort((a,b)=>b[1].n-a[1].n).slice(0,10);
   document.getElementById('th-co').innerHTML = `<table class="tbl"><thead><tr><th>中国授权方 Licensor（${labelOf('indication',therapyArea)}）</th><th>交易笔数 Deals</th><th>披露总额 Disclosed Value</th></tr></thead><tbody>${coRows.map(([k,v])=>`<tr><td>${k}</td><td class="num">${v.n}</td><td class="num">${fmtM(v.total)}</td></tr>`).join('')}</tbody></table>`;
+  // 综合机会矩阵：Indication × Modality
+  const knownTm = deals.filter(d=>d.modality && d.modality!=='Other' && d.modality!=='Unknown' && d.indication && d.indication!=='Other' && d.indication!=='Unknown');
+  const tmComboMap = {};
+  knownTm.forEach(d=>{ const k=d.indication+' | '+d.modality; if(!tmComboMap[k]) tmComboMap[k]={indication:d.indication, modality:d.modality, list:[]}; tmComboMap[k].list.push(d); });
+  const tmList = Object.values(tmComboMap).map(c=>{ const dl=c.list.filter(d=>d.disclosed); return {indication:c.indication, modality:c.modality, list:c.list, n:c.list.length, medianTotal:median(dl.map(d=>d.total)), medianUp:median(dl.map(d=>d.upfront)), total:sum(dl.map(d=>d.total)), discN:dl.length, assets:new Set(c.list.map(d=>d.asset).filter(Boolean)).size}; }).filter(c=>c.medianTotal>0 || c.medianUp>0);
+  const tYrs = [...new Set(knownTm.map(d=>d.year))].sort((a,b)=>a-b);
+  const tComplete = tYrs.slice(0,-1), tRecent3 = tComplete.slice(-3), tPrev3 = tComplete.slice(-6,-3);
+  const tMaxN = Math.max(1, ...tmList.map(c=>c.n));
+  const TMCATS = ['增长','稳定','下降','新兴'];
+  const TMCAT_COLOR = {'增长':'#facc15','稳定':'#94a3b8','下降':'#f87171','新兴':'#60a5fa'};
+  const TMCAT_EN = {'增长':'Growth','稳定':'Stable','下降':'Decline','新兴':'Emerging/Insufficient'};
+  const tmRows = tmList.map(c=>{
+    const r=c.list.filter(d=>tRecent3.includes(d.year)).length;
+    const p=c.list.filter(d=>tPrev3.includes(d.year)).length;
+    let cat='新兴';
+    if(tRecent3.length>=3 && tPrev3.length>=3 && p>0){ const g=(r-p)/p; cat = g>0.1?'增长':(g<-0.1?'下降':'稳定'); }
+    else if(p>0){ const g=(r-p)/p; cat = g>0.1?'增长':(g<-0.1?'下降':'稳定'); }
+    const val = therapyOppValue==='medianTotal' ? c.medianTotal : c.medianUp;
+    return {indication:c.indication, modality:c.modality, n:c.n, act:c.n/tMaxN*100, val:val||0, cat, r, p, assets:c.assets, total:c.total, medianTotal:c.medianTotal, medianUp:c.medianUp, discN:c.discN, discRate:c.n?Math.round(c.discN/c.n*100):0};
+  });
+  const tmMedX = median(tmRows.map(r=>r.act)), tmMedY = median(tmRows.map(r=>r.val));
+  const tmSeries = TMCATS.map(cat=>({name:`${cat} ${TMCAT_EN[cat]}`, type:'scatter', data:tmRows.filter(r=>r.cat===cat).map(r=>({value:[r.act,r.val], _r:r})), itemStyle:{color:TMCAT_COLOR[cat]}, symbolSize:function(v,p){return 10+Math.sqrt(p.data._r.n||1)*5;}}));
+  if(tmSeries.length) tmSeries[0].markLine = {silent:true, symbol:'none', lineStyle:{color:'#334155', type:'dashed'}, data:[{xAxis:tmMedX},{yAxis:tmMedY}]};
+  const thOppChart = mount('th-opp', {
+    tooltip:{...TOOLTIP_DARK, formatter:p=>{ const r=p.data._r; return `<b>${labelOf('indication',r.indication)} × ${labelOf('modality',r.modality)}</b><br/>交易笔数 Deals：<b>${r.n}</b><br/>去重资产 Assets：<b>${r.assets}</b><br/>单笔金额中位数 Median Total：<b>${fmtM(r.medianTotal)}</b><br/>首付款中位数 Median Upfront：<b>${fmtM(r.medianUp)}</b><br/>披露率 Disclosure：<b>${r.discRate}%</b>（${r.discN}/${r.n}）<br/>近期/此前 Recent/Prev：<b>${r.r}</b> / <b>${r.p}</b><br/>趋势 Growth：<b>${r.cat}</b>`; }},
+    legend:{top:0, data:tmSeries.map(x=>x.name), textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
+    grid:{left:16,right:16,top:30,bottom:32,containLabel:true},
+    xAxis:{type:'value', ...AXIS, name:'交易活跃度 Activity（标准化）', nameTextStyle:{color:'#8b9bb0'}, scale:true},
+    yAxis:{type:'value', ...AXIS, name: therapyOppValue==='medianTotal' ? '交易价值 Median Total (US$M)' : '交易价值 Median Upfront (US$M)', nameTextStyle:{color:'#8b9bb0'}, scale:true},
+    series:tmSeries
+  });
+  if(thOppChart) thOppChart.on('click', p=>{ if(p.data && p.data._r){ openIndMod(p.data._r.indication, p.data._r.modality); } });
+  wireSwitch('th-opp-value', {medianTotal:'Y=中位总金额 Median Total', medianUp:'Y=首付款中位数 Median Upfront'}, therapyOppValue, v=>{ therapyOppValue=v; render(); });
 }
 
 // ===== 交易参与方（含生态网络方块）=====
@@ -1023,6 +1062,39 @@ function openCombo(target, modality){
     <table class="tbl" style="margin-top:8px"><tbody>${rows.map(r=>`<tr onclick="openDeal('${r.id}')"><td class="num">${r.date}</td><td>${r.asset}</td><td>${r.licensor}</td><td>${r.licensee}</td><td class="num">${fmtM(r.total)}</td></tr>`).join('')}</tbody></table>
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
       <button class="dd-btn" onclick="state.page='explorer';state.search='${target}';render();closeDeal();">在交易数据库中查看</button>
+      <button class="dd-btn" style="background:var(--accent);color:#1c1700;border-color:var(--accent);font-weight:600" onclick="closeDeal()">关闭</button>
+    </div>`;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function openIndMod(indication, modality){
+  const list = DEALS.filter(d=>d.indication===indication && d.modality===modality);
+  if(!list.length) return;
+  const disc = list.filter(d=>d.disclosed);
+  const medTotal = median(disc.map(d=>d.total));
+  const medUp = median(disc.map(d=>d.upfront));
+  const totalV = sum(disc.map(d=>d.total));
+  const assets = new Set(list.map(d=>d.asset).filter(Boolean)).size;
+  const stages = {};
+  list.forEach(d=>{ stages[d.stage]=(stages[d.stage]||0)+1; });
+  const stageTxt = Object.entries(stages).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,n])=>`${labelOf('stage',k)} ${n}`).join(' · ');
+  const rows = list.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+  document.getElementById('modal').innerHTML = `
+    <button class="x" onclick="closeDeal()">✕</button>
+    <div class="deal-head"><b>${labelOf('indication',indication)} × ${labelOf('modality',modality)}</b></div>
+    <div class="fact">
+      <div><span class="k">交易笔数 Deals</span>${list.length}</div>
+      <div><span class="k">去重资产 Assets</span>${assets}</div>
+      <div><span class="k">披露总额 Total</span>${fmtM(totalV)}</div>
+      <div><span class="k">披露率 Disclosure</span>${Math.round(disc.length/list.length*100)}%（${disc.length}/${list.length}）</div>
+      <div><span class="k">中位总金额 Median Total</span>${fmtM(medTotal)}</div>
+      <div><span class="k">首付款中位数 Median Upfront</span>${fmtM(medUp)}</div>
+    </div>
+    <div class="note">阶段分布：${stageTxt||'—'}</div>
+    <div class="note" style="margin-top:6px">相关交易（点击查看详情）：</div>
+    <table class="tbl" style="margin-top:8px"><tbody>${rows.map(r=>`<tr onclick="openDeal('${r.id}')"><td class="num">${r.date}</td><td>${r.asset}</td><td>${r.licensor}</td><td>${r.licensee}</td><td class="num">${fmtM(r.total)}</td></tr>`).join('')}</tbody></table>
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="dd-btn" onclick="state.page='explorer';state.search='${indication}';render();closeDeal();">在交易数据库中查看</button>
       <button class="dd-btn" style="background:var(--accent);color:#1c1700;border-color:var(--accent);font-weight:600" onclick="closeDeal()">关闭</button>
     </div>`;
   document.getElementById('modalOverlay').classList.add('open');
