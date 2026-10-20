@@ -750,8 +750,9 @@ function renderPipeline(deals){
 
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3><span class="zh">研发成熟度 · Modality × 阶段</span> <span class="en">Development Maturity · Stage</span></h3>
+      <p class="hint">展示不同 Modality 的临床阶段分布，评估各技术路线的研发成熟度与管线阶段布局。</p>
       <div class="metric-switch" id="pl-mat-metric"></div><div id="pl-maturity" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=交易笔数或去重资产；系列=研发阶段。核心：各技术路线的资产成熟度分布。Stage maturity by modality.</div></div>
-    <div class="card"><h3><span class="zh">研发成熟度 · 阶段 × 金额</span> <span class="en">Development Maturity · Value</span></h3><div id="pl-stagebox" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=研发阶段 Stage；Y=单笔金额 US$M。核心：金额是否随研发阶段变化。Deal value by stage.</div></div>
+    <div class="card"><h3><span class="zh">研发成熟度 · 阶段 × 金额</span> <span class="en">Development Maturity · Value</span></h3><p class="hint">对比不同临床阶段的交易金额，分析研发成熟度与海外授权交易价值的关系。</p><div id="pl-stagebox" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=研发阶段 Stage；Y=单笔金额 US$M。核心：金额是否随研发阶段变化。Deal value by stage.</div></div>
   </div>
 
   <div class="card" style="margin-top:14px"><h3><span class="zh">综合机会矩阵</span> <span class="en">Opportunity Matrix · Target × Modality</span></h3>
