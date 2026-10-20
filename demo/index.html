@@ -691,6 +691,7 @@ function renderEconomics(deals){
 let pipeHeatMetric = 'count';
 let pipeValueColor = 'medianTotal';
 let pipeMaturityMetric = 'deals';
+function shortModality(m){ if(MODMAP[m]) return MODMAP[m].k; const en=String(m).match(/[A-Za-z][A-Za-z /+.-]*$/); return (en?en[0].trim():m); }
 
 function renderPipeline(deals){
   const badTarget = t => /未披露|undisclosed|不适用|unknown|待核实|未公开|未具名/i.test(t||'');
@@ -776,9 +777,9 @@ function renderPipeline(deals){
   const modsShown = MODS.filter(m=>m.k!=='Other');
   const heatData=[]; modsShown.forEach((m,xi)=> topTg.forEach((t,yi)=>{ const list=known.filter(d=>d.target===t && d.modality===m.k); const v = pipeHeatMetric==='count' ? list.length : distinctAssets(list); if(v>0) heatData.push([xi, topTg.length-1-yi, v]); }));
   const heatMax=Math.max(1,...heatData.map(d=>d[2]));
-  mount('pl-heat', { tooltip:{...TOOLTIP_DARK, formatter:p=>{ const xi=p.value[0], yi=p.value[1]; const t=topTg[topTg.length-1-yi], m=modsShown[xi].k; const list=known.filter(d=>d.target===t && d.modality===m); return `${t} × ${m}<br/>交易笔数 Deals：<b>${list.length}</b><br/>去重资产 Assets：<b>${distinctAssets(list)}</b>`; }},
+  mount('pl-heat', { tooltip:{...TOOLTIP_DARK, formatter:p=>{ const xi=p.value[0], yi=p.value[1]; const t=topTg[topTg.length-1-yi], m=modsShown[xi].k; const list=known.filter(d=>d.target===t && d.modality===m); return `${t} × ${labelOf('modality',m)}<br/>交易笔数 Deals：<b>${list.length}</b><br/>去重资产 Assets：<b>${distinctAssets(list)}</b>`; }},
     grid:{left:8,right:8,top:8,bottom:8,containLabel:true},
-    xAxis:{type:'category', data:modsShown.map(m=>labelOf('modality',m.k)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    xAxis:{type:'category', data:modsShown.map(m=>shortModality(m.k)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:30, interval:0, color:(val,idx)=>modColor(modsShown[idx].k)}},
     yAxis:{type:'category', data:topTg.slice().reverse(), ...AXIS},
     visualMap:{min:0, max:heatMax, show:false, inRange:{color:['#3d3300','#facc15']}},
     series:[{type:'heatmap', data:heatData, label:{show:true, fontSize:10, color:p=>p.value[2]>=heatMax/2?'#fff':'#3d3300'}}] });
