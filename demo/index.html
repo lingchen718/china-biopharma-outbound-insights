@@ -713,8 +713,8 @@ function renderPipeline(deals){
   `<div class="card" style="margin-bottom:14px"><p class="hint" style="margin:0">本页按独立交易统计；排名与热力图默认仅含已知有效分类（排除 Other/Unknown/未披露），金额图仅含已披露金额。交易活跃度与金额仅代表公开市场观察，不等同于临床疗效或商业成功概率。Rankings/heatmap use known classifications only; amount charts use disclosed amounts only. Deal activity and value reflect public disclosures, not clinical efficacy or commercial success.</p></div>
 
   <div class="grid g2">
-    <div class="card"><h3>市场热点 · 靶点 Top 10 Market Hotspots · Target Top 10</h3><div id="pl-tg" class="chart ch-md"></div></div>
-    <div class="card"><h3>市场热点 · 药物形式 Top 10 Market Hotspots · Modality Top 10</h3><div id="pl-md" class="chart ch-md"></div></div>
+    <div class="card"><h3>市场热点 · 靶点 Top 10 Market Hotspots · Target Top 10</h3><p class="hint">纵轴：独立交易笔数（按 deal_id 去重）。Y-axis: distinct deal count.</p><div id="pl-tg" class="chart ch-md"></div></div>
+    <div class="card"><h3>市场热点 · 药物形式 Top 10 Market Hotspots · Modality Top 10</h3><p class="hint">纵轴：独立交易笔数（按 deal_id 去重）。Y-axis: distinct deal count.</p><div id="pl-md" class="chart ch-md"></div></div>
   </div>
 
   <div class="grid g2" style="margin-top:14px">
@@ -723,11 +723,9 @@ function renderPipeline(deals){
       <div class="metric-switch" id="pl-heat-metric"></div><div id="pl-heat" class="chart ch-md"></div></div>
   </div>
 
-  <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>交易价值 · 金额分布 Deal Value · Distribution</h3><p class="hint">按药物形式的单笔交易金额分布（仅已披露）。Unit: US$M. Disclosed only.</p><div id="pl-value-dist" class="chart ch-md"></div></div>
-    <div class="card"><h3>交易价值 · Target × Modality 价值气泡图 Deal Value · Bubble</h3>
-      <div class="metric-switch" id="pl-value-color"></div><div id="pl-value" class="chart ch-md"></div></div>
-  </div>
+  <div class="card" style="margin-top:14px"><h3>交易价值 · Target × Modality 价值气泡图 Deal Value · Bubble</h3>
+    <p class="hint">气泡大小=独立交易笔数；颜色=单笔金额中位数或首付款中位数（仅已披露且可归属）。Bubble size=distinct deal count; color=median total value or median upfront (disclosed & attributable only).</p>
+    <div class="metric-switch" id="pl-value-color"></div><div id="pl-value" class="chart ch-md"></div></div>
 
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3>时间趋势 · Modality 年度活跃度 Time Trends · Activity</h3><div id="pl-trend" class="chart ch-md"></div></div>
@@ -752,10 +750,10 @@ function renderPipeline(deals){
 
   // 模块1 A：排名
   mount('pl-tg', { tooltip:{...TOOLTIP_DARK, trigger:'axis'}, grid:{left:8,right:8,top:8,bottom:8,containLabel:true},
-    xAxis:{type:'category', data:tgList.slice(0,10).map(t=>t.target), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:24}}, yAxis:{type:'value', ...AXIS, name:'Deals'},
+    xAxis:{type:'category', data:tgList.slice(0,10).map(t=>t.target), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:24}}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameTextStyle:{color:'#8b9bb0'}},
     series:[{type:'bar', barMaxWidth:24, data:tgList.slice(0,10).map(t=>({value:t.n, itemStyle:{color:'#60a5fa', borderRadius:[4,4,0,0]}}))}] });
   mount('pl-md', { tooltip:{...TOOLTIP_DARK, trigger:'axis'}, grid:{left:8,right:8,top:8,bottom:8,containLabel:true},
-    xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}}, yAxis:{type:'value', ...AXIS, name:'Deals'},
+    xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameTextStyle:{color:'#8b9bb0'}},
     series:[{type:'bar', barMaxWidth:28, data:mdList.map(m=>({value:m.n, itemStyle:{color:modColor(m.modality), borderRadius:[4,4,0,0]}}))}] });
 
   // 模块1 B：覆盖表
@@ -772,14 +770,6 @@ function renderPipeline(deals){
     visualMap:{min:0, max:heatMax, show:false, inRange:{color:['#0d2f2b','#2dd4bf']}},
     series:[{type:'heatmap', data:heatData, label:{show:true, fontSize:10, color:p=>p.value[2]>=heatMax/2?'#fff':'#0d2f2b'}}] });
   wireSwitch('pl-heat-metric', {count:'交易笔数 Deals', assets:'去重资产 Assets'}, pipeHeatMetric, v=>{ pipeHeatMetric=v; render(); });
-
-  // 模块2 A：金额分布（按 Modality 箱线图，已披露）
-  const modsDisc = modsShown.filter(m=>disc.some(d=>d.modality===m.k));
-  mount('pl-value-dist', { tooltip:{...TOOLTIP_DARK, trigger:'item'},
-    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
-    xAxis:{type:'category', data:modsDisc.map(m=>labelOf('modality',m.k)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
-    yAxis:{type:'value', ...AXIS, name:'US$M', nameTextStyle:{color:'#8b9bb0'}},
-    series:[{type:'boxplot', data:modsDisc.map(m=>quartiles(disc.filter(d=>d.modality===m.k).map(d=>d.total))), itemStyle:{color:'#2dd4bf', borderColor:'#5eead4'}, boxWidth:[12,28]}] });
 
   // 模块2 B：价值气泡图
   const valColorKey = pipeValueColor==='medianTotal' ? 'medianTotal' : 'medianUp';
