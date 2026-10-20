@@ -691,7 +691,8 @@ let pipeValueColor = 'medianTotal';
 let pipeMaturityMetric = 'deals';
 
 function renderPipeline(deals){
-  const known = deals.filter(d=>d.modality && d.modality!=='Other' && d.modality!=='Unknown' && d.target && d.target!=='Other');
+  const badTarget = t => /未披露|undisclosed|不适用|unknown|待核实|未公开|未具名/i.test(t||'');
+  const known = deals.filter(d=>d.modality && d.modality!=='Other' && d.modality!=='Unknown' && d.target && d.target!=='Other' && !badTarget(d.target));
   const disc = deals.filter(d=>d.disclosed);
   const yrs = [...new Set(deals.map(d=>d.year))].sort((a,b)=>a-b);
   const distinctAssets = list => new Set(list.map(d=>d.asset).filter(Boolean)).size;
