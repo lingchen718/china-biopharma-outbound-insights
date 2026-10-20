@@ -719,7 +719,7 @@ function renderPipeline(deals){
   </div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3>市场热点 · Modality 应用广度 Market Hotspots · Coverage</h3><p class="hint">各药物形式对应的不同靶点数与去重资产数。Distinct targets and assets per modality.</p><div id="pl-cov"></div><div class="hint" style="margin-top:8px">核心：展示各技术路线覆盖的靶点与去重资产广度。Shows target/asset breadth per modality.</div></div>
+    <div class="card"><h3>市场热点 · Modality 应用广度 Market Hotspots · Coverage</h3><p class="hint">各药物形式对应的不同靶点数与去重资产数。Distinct targets and assets per modality.</p><div id="pl-cov" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=数量 Count（堆叠：靶点数 Targets + 去重资产数 Assets）。核心：展示各技术路线覆盖的靶点与去重资产广度。X=Modality; Y=count (stacked: distinct targets + distinct assets).</div></div>
     <div class="card"><h3>市场热点 · Target × Modality 热力图 Market Hotspots · Heatmap</h3>
       <div class="metric-switch" id="pl-heat-metric"></div><div id="pl-heat" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=靶点 Target；颜色越深代表数值越大。可在右上角切换指标：交易笔数 Deals / 去重资产 Assets。本图仅统计已知有效分类（排除未披露、Other、Unknown），用于识别最活跃或布局最广的 Target × Modality 组合。X=Modality; Y=Target; darker color = higher value. Switch metric (deal count / distinct assets) at top-right; only known classifications are included (undisclosed, Other and Unknown excluded).</div></div>
   </div>
@@ -758,7 +758,13 @@ function renderPipeline(deals){
     series:[{type:'bar', barMaxWidth:28, data:mdList.map(m=>({value:m.n, itemStyle:{color:modColor(m.modality), borderRadius:[4,4,0,0]}}))}] });
 
   // 模块1 B：覆盖表
-  document.getElementById('pl-cov').innerHTML = `<table class="tbl"><thead><tr><th>药物形式 Modality</th><th>交易笔数 Deals</th><th>靶点数 Targets</th><th>去重资产数 Assets</th></tr></thead><tbody>${mdList.map(m=>`<tr><td>${tagHtml(modColor(m.modality), labelOf('modality',m.modality))}</td><td class="num">${m.n}</td><td class="num">${m.tg.size}</td><td class="num">${m.assets.size}</td></tr>`).join('')}</tbody></table>`;
+  mount('pl-cov', { tooltip:{...TOOLTIP_DARK, trigger:'axis', axisPointer:{type:'shadow'}, formatter: ps=>{ const xi=ps[0].dataIndex; const m=mdList[xi]; return `${labelOf('modality',m.modality)}<br/>交易笔数 Deals：<b>${m.n}</b><br/>靶点数 Targets：<b>${m.tg.size}</b><br/>去重资产数 Assets：<b>${m.assets.size}</b>`; }},
+    legend:{top:0, textStyle:{fontSize:11, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
+    grid:{left:8,right:8,top:26,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    yAxis:{type:'value', ...AXIS, name:'数量 Count', nameTextStyle:{color:'#8b9bb0'}},
+    series:[{name:'靶点数 Targets', type:'bar', stack:'total', itemStyle:{color:'#2dd4bf'}, data:mdList.map(m=>m.tg.size)},
+            {name:'去重资产数 Assets', type:'bar', stack:'total', itemStyle:{color:'#60a5fa'}, data:mdList.map(m=>m.assets.size)}] });
 
   // 模块1 C：热力图（笔数 / 去重资产）
   const modsShown = MODS.filter(m=>m.k!=='Other');
