@@ -87,7 +87,7 @@
   table.tbl tbody tr { cursor: pointer; }
   table.tbl tbody tr:hover { background: #16233b; }
   .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11.5px; white-space: nowrap; }
-  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
   .leader { display: flex; gap: 14px; flex-wrap: wrap; }
   .leader .side { flex: 1; min-width: 360px; }
 
@@ -966,9 +966,9 @@ function renderCompanies(deals){
   main.innerHTML = title('交易参与方 Companies', PAGE_EN.companies) +
   `<div class="leader">
     <div class="side card"><h3><span class="zh">中国授权方</span> <span class="en">Licensors</span></h3><p class="hint">不做武断排名，可按多指标切换排序</p><div id="co-cn"></div></div>
-    <div class="side card"><h3><span class="zh">海外引进方</span> <span class="en">Overseas Licensee</span></h3><p class="hint">与中国交易的海外公司</p><div id="co-os"></div></div>
+    <div class="side card"><h3><span class="zh">海外引进方</span> <span class="en">Overseas Licensees</span></h3><p class="hint">与中国交易的海外公司</p><div id="co-os"></div></div>
   </div>
-  <div class="card" style="margin-top:14px"><h3><span class="zh">公司 × 药物形式</span> <span class="en">Company × Modality</span></h3><p class="hint">气泡大小 = 交易笔数；颜色 = 药物形式（与全站配色一致）。Bubble size = deal count; color = modality.</p><div id="co-bubble" class="chart ch-md"></div></div>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">公司 × 药物形式</span> <span class="en">Company × Modality</span></h3><p class="hint">展示不同公司在各类药物形式上的交易布局与活跃程度，识别公司的技术布局差异及潜在合作方向。</p><div id="co-bubble" class="chart ch-md"></div><div class="hint" style="margin-top:8px">气泡大小 = 交易笔数；颜色 = 药物形式（与全站配色一致）。Bubble size = deal count; color = modality.</div></div>
   <div class="card" style="margin-top:14px"><h3><span class="zh">生态网络</span> <span class="en">Network</span></h3><p class="hint">节点=公司（<span style="color:#2dd4bf">● 中国</span> / <span style="color:#60a5fa">● 海外</span>），大小=交易笔数，连线=交易；可拖拽/缩放，点击节点查看公司档案</p><div id="co-net" class="chart" style="height:440px"></div></div>`;
   document.getElementById('co-cn').innerHTML = leaderTableHtml(cnSorted, coSort);
   document.getElementById('co-os').innerHTML = leaderTableHtml(osSorted, coSort2);
