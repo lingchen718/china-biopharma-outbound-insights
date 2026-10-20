@@ -453,7 +453,7 @@ function renderOverview(deals){
     <div class="card"><h3><span class="zh">交易活跃度趋势</span> <span class="en">Deal Activity Trends</span></h3>
       <div class="metric-switch" id="ov-metric"></div><div class="dim-switch" id="ov-dim"></div>
       <div id="ov-trend" class="chart ch-md"></div></div>
-    <div class="card"><h3><span class="zh">全球足迹</span> <span class="en">Destination of Chinese Biopharma Assets</span></h3><p class="hint">中国资产出海目的地；按授权区域（territory）展示，点击后以区域（region）筛选</p><div id="ov-map" class="chart ch-md" style="overflow:hidden"></div></div>
+    <div class="card"><h3><span class="zh">全球足迹</span> <span class="en">Destination of Chinese Biopharma Assets</span></h3><p class="hint">中国资产出海目的地；按授权区域（territory）展示，点击后以区域（region）筛选</p><div id="ov-map" class="chart"></div></div>
   </div>
   <div class="card" style="margin-top:14px"><h3><span class="zh">最近交易</span> <span class="en">Recent Transactions</span></h3><div id="ov-recent"></div></div>`;
   mount('ov-trend', buildTrend(deals, ovMetric, ovDim));
