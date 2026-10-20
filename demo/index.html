@@ -756,10 +756,6 @@ function renderPipeline(deals){
     <div class="card"><h3><span class="zh">研发成熟度 · 阶段 × 金额</span> <span class="en">Development Maturity · Value</span></h3><p class="hint">对比不同临床阶段的交易金额，分析研发成熟度与海外授权交易价值的关系。Compares deal value across clinical stages to examine the relationship between development maturity and licensing-out deal value.</p><div id="pl-stagebox" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=研发阶段 Stage；Y=单笔金额 US$M。核心：金额是否随研发阶段变化。Deal value by stage.</div></div>
   </div>
 
-  <div class="card" style="margin-top:14px"><h3><span class="zh">综合机会矩阵</span> <span class="en">Opportunity Matrix · Target × Modality</span></h3>
-    <p class="hint">结合交易活跃度、交易价值与近期增长趋势，识别核心优势组合、潜在差异化机会及竞争关注领域。Integrates deal activity, deal value and recent growth to identify core-advantage combos, potential differentiation opportunities and competitive-watch areas.</p>
-    <div class="metric-switch" id="pl-opp-value"></div>
-    <div id="pl-opp" class="chart ch-lg"></div><div class="hint" style="margin-top:8px">X=标准化交易活跃度；Y=单笔金额中位数；气泡大小=交易笔数；颜色=近期增长趋势；虚线=样本中位数（四象限：高热度高价值 / 低热度高价值 / 高热度低价值 / 低热度低价值）。X=standardized activity; Y=median deal value; size=deal count; color=recent growth; dashed lines=median thresholds (quadrants: high heat/high value, low heat/high value, high heat/low value, low heat/low value).</div></div>
 
   <div class="card" style="margin-top:14px"><h3><span class="zh">资产管线</span> <span class="en">Asset Pipeline</span></h3>
     <p class="hint">代表性资产的研发阶段、临床进展与交易事件。金额为“关联交易金额”，同一交易可能关联多个资产，不可简单求和。Amounts are associated deal amounts; a deal may involve multiple assets and must not be summed as market totals.</p>
@@ -844,48 +840,6 @@ function renderPipeline(deals){
     yAxis:{type:'value', ...AXIS, name:'US$M', nameTextStyle:{color:'#8b9bb0'}},
     series:[{type:'boxplot', data:stagesPresent.map(st=>quartiles(disc.filter(d=>d.stage===st).map(d=>d.total))), itemStyle:{color:'#facc15', borderColor:'#fde047'}, boxWidth:[12,26]}] });
 
-  // 模块5：机会矩阵（四象限气泡）
-  const oppMaxN = Math.max(1, ...combos.map(c=>c.n));
-  const oppValKey = pipeOppValue==='medianTotal' ? 'medianTotal' : 'medianUp';
-  const complete = yrs.slice(0, -1);
-  const recent3 = complete.slice(-3), prev3 = complete.slice(-6, -3);
-  const CATS = ['增长','稳定','下降','新兴'];
-  const CAT_COLOR = {'增长':'#facc15','稳定':'#94a3b8','下降':'#f87171','新兴':'#60a5fa'};
-  const CAT_EN = {'增长':'Growth','稳定':'Stable','下降':'Decline','新兴':'Emerging/Insufficient'};
-  const oppRows = combos.filter(c=>c.medianTotal>0 || c.medianUp>0).map(c=>{
-    const r = c.list.filter(d=>recent3.includes(d.year)).length;
-    const p = c.list.filter(d=>prev3.includes(d.year)).length;
-    let cat = '新兴';
-    if(recent3.length>=3 && prev3.length>=3 && p>0){
-      const g=(r-p)/p;
-      cat = g>0.1 ? '增长' : (g<-0.1 ? '下降' : '稳定');
-    } else if(p>0){
-      const g=(r-p)/p;
-      cat = g>0.1 ? '增长' : (g<-0.1 ? '下降' : '稳定');
-    }
-    const dl=c.list.filter(d=>d.disclosed);
-    return {target:c.target, modality:c.modality, n:c.n, act:c.n/oppMaxN*100, val:c[oppValKey]||0,
-      cat, r, p, assets:distinctAssets(c.list), total:sum(dl.map(d=>d.total)),
-      medianTotal:c.medianTotal, medianUp:c.medianUp, discN:dl.length, discRate:c.n?Math.round(dl.length/c.n*100):0};
-  });
-  const medX = median(oppRows.map(r=>r.act)), medY = median(oppRows.map(r=>r.val));
-  const oppSeries = CATS.map((cat,ci)=>({
-    name:`${cat} ${CAT_EN[cat]}`, type:'scatter',
-    data: oppRows.filter(r=>r.cat===cat).map(r=>({value:[r.act, r.val], _r:r})),
-    itemStyle:{color:CAT_COLOR[cat]},
-    symbolSize:function(v,p){ return 10 + Math.sqrt(p.data._r.n||1)*5; }
-  }));
-  if(oppSeries.length){ oppSeries[0].markLine = {silent:true, symbol:'none', lineStyle:{color:'#334155', type:'dashed'}, data:[{xAxis:medX},{yAxis:medY}]}; }
-  const oppChart = mount('pl-opp', {
-    tooltip:{...TOOLTIP_DARK, formatter:p=>{ const r=p.data._r; return `<b>${r.target} × ${r.modality}</b><br/>交易笔数 Deals：<b>${r.n}</b><br/>去重资产 Assets：<b>${r.assets}</b><br/>单笔金额中位数 Median Total：<b>${fmtM(r.medianTotal)}</b><br/>首付款中位数 Median Upfront：<b>${fmtM(r.medianUp)}</b><br/>披露率 Disclosure：<b>${r.discRate}%</b>（${r.discN}/${r.n}）<br/>近期/此前 Recent/Prev：<b>${r.r}</b> / <b>${r.p}</b><br/>趋势 Growth：<b>${r.cat}</b>`; }},
-    legend:{top:0, data:oppSeries.map(x=>x.name), textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
-    grid:{left:16,right:16,top:30,bottom:32,containLabel:true},
-    xAxis:{type:'value', ...AXIS, name:'交易活跃度 Activity（标准化）', nameTextStyle:{color:'#8b9bb0'}, scale:true},
-    yAxis:{type:'value', ...AXIS, name: pipeOppValue==='medianTotal' ? '交易价值 Median Total (US$M)' : '交易价值 Median Upfront (US$M)', nameTextStyle:{color:'#8b9bb0'}, scale:true},
-    series:oppSeries
-  });
-  if(oppChart) oppChart.on('click', p=>{ if(p.data && p.data._r){ openCombo(p.data._r.target, p.data._r.modality); } });
-  wireSwitch('pl-opp-value', {medianTotal:'Y=中位总金额 Median Total', medianUp:'Y=首付款中位数 Median Upfront'}, pipeOppValue, v=>{ pipeOppValue=v; render(); });
 
   // 资产管线表（保留）
   const assets={}; deals.forEach(d=>{ if(!assets[d.asset]) assets[d.asset]={asset:d.asset, target:d.target, modality:d.modality, indication:d.indication, licensor:d.licensor, stage:d.stage, total:0, n:0}; const a=assets[d.asset]; a.n++; a.total=Math.max(a.total, d.total||0); });
