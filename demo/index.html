@@ -815,7 +815,7 @@ function renderPipeline(deals){
   mount('pl-share', { color:modsShown.map(m=>modColor(m.k)), tooltip:{...TOOLTIP_DARK, trigger:'axis', valueFormatter:v=>v+'%'},
     legend:{type:'scroll', top:0, textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
     grid:{left:16,right:8,top:26,bottom:24,containLabel:true},
-    xAxis:{type:'category', data:yrs.map(y=>String(y)), name:'年份 Year', nameTextStyle:{color:'#8b9bb0'}, ...AXIS}, yAxis:{type:'value', ...AXIS, max:100, name:'年度占比 %', nameLocation:'middle', nameGap:30, nameTextStyle:{color:'#8b9bb0'}, axisLabel:{color:'#8b9bb0', fontSize:11, formatter:'{value}%'}},
+    xAxis:{type:'category', data:yrs.map(y=>String(y)), name:'年份 Year', nameTextStyle:{color:'#8b9bb0'}, ...AXIS}, yAxis:{type:'value', ...AXIS, max:100, name:'年度占比 %', nameLocation:'middle', nameGap:31, nameTextStyle:{color:'#8b9bb0', fontSize:11}, axisLabel:{color:'#8b9bb0', fontSize:11, formatter:'{value}%'}},
     series:modsShown.map(m=>({name:labelOf('modality',m.k), type:'line', stack:'total', smooth:true, symbol:'none', areaStyle:{opacity:.6}, color:modColor(m.k), data:yrs.map(y=>{ const tot=shareData['__tot'+y]||1; return +(shareData[m.k+y]/tot*100).toFixed(1); })})) });
 
   // 模块3 C：近期增长表
