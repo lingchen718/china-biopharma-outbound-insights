@@ -721,7 +721,7 @@ function renderPipeline(deals){
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3>市场热点 · Modality 应用广度 Market Hotspots · Coverage</h3><p class="hint">各药物形式对应的不同靶点数与去重资产数。Distinct targets and assets per modality.</p><div id="pl-cov"></div><div class="hint" style="margin-top:8px">核心：展示各技术路线覆盖的靶点与去重资产广度。Shows target/asset breadth per modality.</div></div>
     <div class="card"><h3>市场热点 · Target × Modality 热力图 Market Hotspots · Heatmap</h3>
-      <div class="metric-switch" id="pl-heat-metric"></div><div id="pl-heat" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=靶点 Target；颜色=交易笔数或去重资产。核心：识别活跃度/布局最广的 Target × Modality 组合。Identifies the most active or broadest Target × Modality combos.</div></div>
+      <div class="metric-switch" id="pl-heat-metric"></div><div id="pl-heat" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=靶点 Target；颜色越深代表数值越大。可在右上角切换指标：交易笔数 Deals / 去重资产 Assets。本图仅统计已知有效分类（排除未披露、Other、Unknown），用于识别最活跃或布局最广的 Target × Modality 组合。X=Modality; Y=Target; darker color = higher value. Switch metric (deal count / distinct assets) at top-right; only known classifications are included (undisclosed, Other and Unknown excluded).</div></div>
   </div>
 
   <div class="card" style="margin-top:14px"><h3>交易价值 · Target × Modality 价值气泡图 Deal Value · Bubble</h3>
