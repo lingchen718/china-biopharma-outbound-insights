@@ -1076,7 +1076,7 @@ async function renderTherapy(){
     legend:{top:0, data:tmSeries.map(x=>x.name), textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
     grid:{left:48,right:16,top:30,bottom:32,containLabel:true},
     xAxis:{type:'value', ...AXIS, name:'交易活跃度 Deal Count（独立交易笔数）', nameTextStyle:{color:'#8b9bb0'}, scale:true},
-    yAxis:{type:'value', ...AXIS, name: therapyOppValue==='medianTotal' ? 'Median Total (US$M)' : 'Median Upfront (US$M)', nameLocation:'middle', nameGap:42, nameTextStyle:{color:'#8b9bb0'}, scale:true},
+    yAxis:{type:'value', ...AXIS, name: therapyOppValue==='medianTotal' ? 'Median Total (US$M)' : 'Median Upfront (US$M)', nameLocation:'middle', nameGap:45, nameTextStyle:{color:'#8b9bb0'}, scale:true},
     series:tmSeries
   });
   if(thOppChart) thOppChart.on('click', p=>{ if(p.data && p.data._r){ openIndMod(p.data._r.indication, p.data._r.modality); } });
@@ -1115,7 +1115,7 @@ function buildNetworkOption(deals){
     [['cn',d.licensor],['os',d.licensee]].forEach(([side,name])=>{ if(!nm.has(name)) nm.set(name,{name,cn:side==='cn',cnt:0}); nm.get(name).cnt++; });
     const key=d.licensor+'|'+d.licensee; if(!em.has(key)) em.set(key,{s:d.licensor,t:d.licensee,v:0}); em.get(key).v++;
   });
-  const nodes=[...nm.values()].map(n=>({id:n.name,name:n.name,category:n.cn?0:1,symbolSize:12+Math.sqrt(n.cnt)*5,itemStyle:{color:n.cn?'#2dd4bf':'#60a5fa'}}));
+  const nodes=[...nm.values()].map(n=>({id:n.name,name:n.name,category:n.cn?0:1,symbolSize:12+Math.sqrt(n.cnt)*5,itemStyle:{color:n.cn?'#ef4444':'#60a5fa'}}));
   const edges=[...em.values()].map(e=>({source:e.s,target:e.t,value:e.v,lineStyle:{width:Math.min(1+e.v,8),color:'#334155',curveness:0.12}}));
   const option = { tooltip:{...TOOLTIP_DARK, formatter:p=>p.dataType==='edge'?`${p.data.source} ↔ ${p.data.target}<br/>交易：<b>${p.data.value}</b>`:`${p.name}<br/>交易：<b>${nm.get(p.name).cnt}</b>`},
     legend:[{data:['中国公司','海外公司'], bottom:8, textStyle:{fontSize:11, color:'#cbd5e1'}}],
@@ -1133,7 +1133,7 @@ function renderCompanies(deals){
     <div class="side card"><h3><span class="zh">海外引进方</span> <span class="en">Overseas Licensees</span></h3><p class="hint">与中国交易的海外公司</p><div id="co-os"></div></div>
   </div>
   <div class="card" style="margin-top:14px"><h3><span class="zh">公司 × 药物形式</span> <span class="en">Company × Modality</span></h3><p class="hint">展示不同公司在各类药物形式上的交易布局与活跃程度，识别公司的技术布局差异及潜在合作方向。</p><div id="co-bubble" class="chart ch-md"></div><div class="hint" style="margin-top:8px">气泡大小 = 交易笔数；颜色 = 药物形式（与全站配色一致）。Bubble size = deal count; color = modality.</div></div>
-  <div class="card" style="margin-top:14px"><h3><span class="zh">生态网络</span> <span class="en">Network</span></h3><p class="hint">节点=公司（<span style="color:#2dd4bf">● 中国</span> / <span style="color:#60a5fa">● 海外</span>），大小=交易笔数，连线=交易；可拖拽/缩放，点击节点查看公司档案</p><div id="co-net" class="chart" style="height:440px"></div></div>`;
+  <div class="card" style="margin-top:14px"><h3><span class="zh">生态网络</span> <span class="en">Network</span></h3><p class="hint">节点=公司（<span style="color:#ef4444">● 中国</span> / <span style="color:#60a5fa">● 海外</span>），大小=交易笔数，连线=交易；可拖拽/缩放，点击节点查看公司档案</p><div id="co-net" class="chart" style="height:440px"></div></div>`;
   document.getElementById('co-cn').innerHTML = leaderTableHtml(cnSorted, coSort);
   document.getElementById('co-os').innerHTML = leaderTableHtml(osSorted, coSort2);
   // 公司 × 药物形式
