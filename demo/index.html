@@ -61,6 +61,7 @@
   .dimension-bar .seg { padding: 3px 9px; border: 1px solid var(--line); border-radius: 20px; }
 
   .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .kpis-inline { grid-template-columns: repeat(3, 1fr); }
   .kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
   .kpi .label { font-size: 12px; color: var(--muted); }
   .kpi .value { font-size: 24px; font-weight: 700; margin-top: 6px; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
@@ -557,11 +558,15 @@ async function renderOverview(){
     fetch('/api/geo/countries?'+q.toString()).then(r=>r.json()),
     fetch('/api/deals?'+d.toString()).then(r=>r.json())
   ]);
-  main.innerHTML = title('市场概览 Overview', PAGE_EN.overview) + kpiHtmlFromServer(kpis) +
+  const kpiHtml = kpiHtmlFromServer(kpis).replace('<div class="kpis">', '<div class="kpis kpis-inline">');
+  main.innerHTML = title('市场概览 Overview', PAGE_EN.overview) +
   `<div class="grid g2" style="margin-top:14px;align-items:start">
-    <div class="card"><h3><span class="zh">交易活跃度趋势</span> <span class="en">Deal Activity Trends</span></h3>
-      <div class="metric-switch" id="ov-metric"></div><div class="dim-switch" id="ov-dim"></div>
-      <div id="ov-trend" class="chart ch-md"></div></div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      ${kpiHtml}
+      <div class="card"><h3><span class="zh">交易活跃度趋势</span> <span class="en">Deal Activity Trends</span></h3>
+        <div class="metric-switch" id="ov-metric"></div><div class="dim-switch" id="ov-dim"></div>
+        <div id="ov-trend" class="chart ch-md"></div></div>
+    </div>
     <div class="card"><h3><span class="zh">全球足迹</span> <span class="en">Destination of Chinese Biopharma Assets</span></h3><p class="hint">中国资产出海目的地；按授权区域（territory）展示，点击后以区域（region）筛选</p><div id="ov-map" class="chart"></div></div>
   </div>
   <div class="card" style="margin-top:14px"><h3><span class="zh">最近交易</span> <span class="en">Recent Transactions</span></h3><div id="ov-recent"></div></div>`;
