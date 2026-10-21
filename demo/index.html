@@ -349,7 +349,7 @@ const IND_COLORS = Object.fromEntries(INDS.map((v,i)=>[v,PALETTE[i%PALETTE.lengt
 let chartRegistry = [];
 function mount(id, option){ const el=document.getElementById(id); if(!el) return null; const c=echarts.init(el); c.setOption(option); chartRegistry.push(c); return c; }
 function clearCharts(){ chartRegistry.forEach(c=>c.dispose()); chartRegistry=[]; }
-window.addEventListener('resize', ()=>{ chartRegistry.forEach(c=>c.resize && c.resize()); });
+if(window && window.addEventListener) window.addEventListener('resize', ()=>{ chartRegistry.forEach(c=>c.resize && c.resize()); });
 const AXIS = { axisLine:{lineStyle:{color:'#2a3b55'}}, axisLabel:{color:'#8b9bb0', fontSize:11}, splitLine:{lineStyle:{color:'#1d2a40'}}, nameGap:12 };
 const TOOLTIP_DARK = { backgroundColor:'#111827', borderColor:'#223047', textStyle:{color:'#e6edf3', fontSize:12}, confine:true };
 
@@ -1150,16 +1150,79 @@ function buildNetworkOption(deals){
   return {option, nm};
 }
 
+function yearGap(a,b){ if(!a||!b) return null; const ya=+String(a).slice(0,4), yb=+String(b).slice(0,4); return Math.max(0, yb-ya); }
+function buildRelationshipData(deals){
+  const sorted = deals.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  const firstSeen={}, pairMap={}, yearsMap={};
+  let firstN=0, repeatN=0;
+  sorted.forEach(d=>{
+    const key = d.licensor+' | '+d.licensee;
+    const isFirst = !firstSeen[key];
+    if(isFirst){ firstSeen[key]=1; firstN++; } else { repeatN++; }
+    const y=d.year;
+    if(!yearsMap[y]) yearsMap[y]={year:y, first:0, repeat:0};
+    if(isFirst) yearsMap[y].first++; else yearsMap[y].repeat++;
+    if(!pairMap[key]) pairMap[key]={licensor:d.licensor, licensee:d.licensee, deals:[], firstYear:d.year};
+    const p=pairMap[key];
+    p.count=(p.count||0)+1;
+    p.lastYear=Math.max(p.lastYear||0, d.year);
+    p.deals.push({date:d.date, year:d.year, first:isFirst, asset:d.asset, total:d.total, id:d.id});
+  });
+  const total = deals.length||1;
+  const pairs = Object.values(pairMap).map(p=>{
+    p.deals.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    let gapSum=0, gapN=0;
+    for(let i=1;i<p.deals.length;i++){ const g=yearGap(p.deals[i-1].date,p.deals[i].date); if(g!=null){ gapSum+=g; gapN++; } }
+    p.avgGap = gapN? +(gapSum/gapN).toFixed(1) : null;
+    return p;
+  }).sort((a,b)=>b.count-a.count);
+  const repeatPairs = pairs.filter(p=>p.count>=2);
+  return {
+    total: deals.length, firstN, repeatN,
+    firstShare: deals.length? firstN/deals.length*100:0,
+    repeatDealShare: deals.length? repeatN/deals.length*100:0,
+    repeatRelShare: pairs.length? repeatPairs.length/pairs.length*100:0,
+    years: Object.values(yearsMap).sort((a,b)=>a.year-b.year),
+    repeatPairs
+  };
+}
+function openPairTimeline(licensor, licensee){
+  const list = DEALS.filter(d=>d.licensor===licensor && d.licensee===licensee).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const rows = list.map((d,i)=>`<tr onclick="openDeal('${d.id}')"><td class="num">${d.date}</td><td>${i===0?'首次合作':'第'+(i+1)+'笔交易'}</td><td>${d.asset}</td><td class="num">${fmtM(d.total)}</td></tr>`).join('');
+  document.getElementById('modal').innerHTML = `
+    <button class="x" onclick="closeDeal()">✕</button>
+    <div class="deal-head"><b>${licensor} × ${licensee}</b></div>
+    <div class="note">合作关系时间线（点击交易查看详情）：</div>
+    <table class="tbl" style="margin-top:8px"><thead><tr><th>日期</th><th>交易次序</th><th>资产</th><th>潜在总额</th></tr></thead><tbody>${rows}</tbody></table>
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end"><button class="dd-btn" style="background:var(--accent);color:#1c1700;border-color:var(--accent);font-weight:600" onclick="closeDeal()">关闭</button></div>`;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
 function renderCompanies(deals){
   const cn=companyStats(deals,'licensor'), os=companyStats(deals,'licensee');
   const cnSorted=sortCompanies(cn,coSort), osSorted=sortCompanies(os,coSort2);
+  const rel = buildRelationshipData(deals);
   main.innerHTML = title('交易参与方 Companies', PAGE_EN.companies) +
   `<div class="leader">
     <div class="side card"><h3><span class="zh">中国授权方</span> <span class="en">Licensors</span></h3><p class="hint">不做武断排名，可按多指标切换排序</p><div id="co-cn"></div></div>
     <div class="side card"><h3><span class="zh">海外引进方</span> <span class="en">Overseas Licensees</span></h3><p class="hint">与中国交易的海外公司</p><div id="co-os"></div></div>
   </div>
   <div class="card" style="margin-top:14px"><h3><span class="zh">公司 × 药物形式</span> <span class="en">Company × Modality</span></h3><p class="hint">展示不同公司在各类药物形式上的交易布局与活跃程度，识别公司的技术布局差异及潜在合作方向。</p><div id="co-bubble" class="chart ch-md"></div><div class="hint" style="margin-top:8px">气泡大小 = 交易笔数；颜色 = 药物形式（与全站配色一致）。Bubble size = deal count; color = modality.</div></div>
-  <div class="card" style="margin-top:14px"><h3><span class="zh">生态网络</span> <span class="en">Network</span></h3><p class="hint">节点=公司（<span style="color:#ef4444">● 中国</span> / <span style="color:#60a5fa">● 海外</span>），大小=交易笔数，连线=交易；可拖拽/缩放，点击节点查看公司档案</p><div id="co-net" class="chart" style="height:440px"></div></div>`;
+  <div class="card" style="margin-top:14px"><h3><span class="zh">生态网络</span> <span class="en">Network</span></h3><p class="hint">节点=公司（<span style="color:#ef4444">● 中国</span> / <span style="color:#60a5fa">● 海外</span>），大小=交易笔数，连线=交易；可拖拽/缩放，点击节点查看公司档案</p><div id="co-net" class="chart" style="height:440px"></div></div>
+
+  <div class="card" style="margin-top:14px"><h3><span class="zh">对手方关系情报</span> <span class="en">Partner Relationship Intelligence</span></h3>
+    <p class="hint">首次合作=某中国授权方与某海外引进方之间首次达成独立交易；复购=同一对授权方—被授权方再次达成独立交易（非同一药物重复授权）。指标仅呈现事实，不直接等同于合作质量或信任提升。First-time = the first independent deal between a licensor–licensee pair; repeat = a subsequent independent deal between the same pair. Metrics reflect facts only, not necessarily improved partnership quality.</p>
+    <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi" style="--k:#60a5fa"><div class="label">首次合作交易占比 First-time Deal Share</div><div class="value">${rel.firstShare.toFixed(1)}%</div><div class="sub">${rel.firstN} / ${rel.total} deals</div></div>
+      <div class="kpi" style="--k:#facc15"><div class="label">重复合作交易占比 Repeat Deal Share</div><div class="value">${rel.repeatDealShare.toFixed(1)}%</div><div class="sub">${rel.repeatN} / ${rel.total} deals</div></div>
+      <div class="kpi" style="--k:#34d399"><div class="label">重复合作关系占比 Repeat Relationship Share</div><div class="value">${rel.repeatRelShare.toFixed(1)}%</div><div class="sub">${rel.repeatPairs.length} repeat pairs</div></div>
+      <div class="kpi" style="--k:#c084fc"><div class="label">重复合作关系数 Repeat Relationships</div><div class="value">${rel.repeatPairs.length}</div><div class="sub">pairs with ≥2 deals</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card"><h4 style="margin:0 0 4px">年度首次合作与重复合作趋势</h4><p class="hint">市场交易增长来自新伙伴，还是既有伙伴的持续合作？</p><div id="pr-trend" class="chart ch-md"></div></div>
+      <div class="card"><h4 style="margin:0 0 4px">合作伙伴关系矩阵（持续合作 Top）</h4><p class="hint">哪些中国药企与哪些海外合作方存在持续交易关系？点击行查看时间线。</p><div id="pr-pairs"></div></div>
+    </div>
+  </div>`;
   document.getElementById('co-cn').innerHTML = leaderTableHtml(cnSorted, coSort);
   document.getElementById('co-os').innerHTML = leaderTableHtml(osSorted, coSort2);
   // 公司 × 药物形式
@@ -1175,6 +1238,22 @@ function renderCompanies(deals){
   const {option}=buildNetworkOption(deals);
   const c=mount('co-net', option);
   c.on('click', p=>{ if(p.dataType==='node') openCompany(p.name); });
+
+  // 对手方关系情报
+  mount('pr-trend', {
+    tooltip:{...TOOLTIP_DARK, trigger:'axis', axisPointer:{type:'shadow'}},
+    legend:{top:0, data:['首次合作 First-time','重复合作 Repeat'], textStyle:{fontSize:11, color:'#cbd5e1'}},
+    grid:{left:16,right:8,top:30,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:rel.years.map(y=>String(y.year)), ...AXIS},
+    yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:30, nameTextStyle:{color:'#8b9bb0'}},
+    series:[
+      {name:'首次合作 First-time', type:'bar', stack:'total', itemStyle:{color:'#60a5fa', borderRadius:[4,4,0,0]}, data:rel.years.map(y=>y.first)},
+      {name:'重复合作 Repeat', type:'bar', stack:'total', itemStyle:{color:'#facc15', borderRadius:[4,4,0,0]}, data:rel.years.map(y=>y.repeat)}
+    ]
+  });
+  document.getElementById('pr-pairs').innerHTML = `<table class="tbl"><thead><tr><th>中国授权方 Licensor</th><th>海外引进方 Licensee</th><th>交易笔数 Deals</th><th>首次年份 First Year</th><th>最近年份 Last Year</th><th>平均再次合作间隔 Avg Repeat Gap（年）</th></tr></thead><tbody>
+    ${rel.repeatPairs.slice(0,15).map(p=>`<tr onclick="openPairTimeline('${p.licensor.replace(/'/g,"\\'")}','${p.licensee.replace(/'/g,"\\'")}')"><td>${p.licensor}</td><td>${p.licensee}</td><td class="num">${p.count}</td><td class="num">${p.firstYear}</td><td class="num">${p.lastYear}</td><td class="num">${p.avgGap??'—'}</td></tr>`).join('')}
+  </tbody></table>`;
 }
 
 // ===== 交易数据库 =====
