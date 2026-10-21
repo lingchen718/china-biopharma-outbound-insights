@@ -820,25 +820,15 @@ let pipeMaturityMetric = 'deals';
 let pipeOppValue = 'medianTotal';
 function shortModality(m){ if(MODMAP[m]) return MODMAP[m].k; const en=String(m).match(/[A-Za-z][A-Za-z /+.-]*$/); return (en?en[0].trim():m); }
 
-function renderPipeline(deals){
-  const badTarget = t => /未披露|undisclosed|不适用|unknown|待核实|未公开|未具名/i.test(t||'');
-  const known = deals.filter(d=>d.modality && d.modality!=='Other' && d.modality!=='Unknown' && d.target && d.target!=='Other' && !badTarget(d.target));
-  const disc = deals.filter(d=>d.disclosed);
-  const yrs = [...new Set(deals.map(d=>d.year))].sort((a,b)=>a-b);
-  const distinctAssets = list => new Set(list.map(d=>d.asset).filter(Boolean)).size;
-
-  // 模块1 聚合
-  const tgMap={}; known.forEach(d=>{ if(!tgMap[d.target]) tgMap[d.target]={n:0, assets:new Set()}; const t=tgMap[d.target]; t.n++; t.assets.add(d.asset); });
-  const tgList=Object.entries(tgMap).map(([target,o])=>({target, n:o.n, assets:o.assets.size})).sort((a,b)=>b.n-a.n);
-
-  const mdMap={}; known.forEach(d=>{ if(!mdMap[d.modality]) mdMap[d.modality]={n:0, tg:new Set(), assets:new Set()}; const m=mdMap[d.modality]; m.n++; m.tg.add(d.target); m.assets.add(d.asset); });
-  const mdList=MODS.filter(m=>m.k!=='Other').map(m=>({modality:m.k, n:(mdMap[m.k]||{n:0}).n, tg:(mdMap[m.k]||{tg:new Set()}).tg, assets:(mdMap[m.k]||{assets:new Set()}).assets})).sort((a,b)=>b.n-a.n);
-
-  const comboMap={}; known.forEach(d=>{ const k=d.target+' | '+d.modality; if(!comboMap[k]) comboMap[k]={target:d.target, modality:d.modality, list:[]}; comboMap[k].list.push(d); });
-  const combos=Object.values(comboMap).map(c=>{ const dl=c.list.filter(d=>d.disclosed); const rec=c.list.filter(d=>d.year>=yrs[yrs.length-2]).length; const old=c.list.filter(d=>d.year<=yrs[yrs.length-3]).length; return {target:c.target, modality:c.modality, list:c.list, n:c.list.length, assets:distinctAssets(c.list), total:sum(dl.map(d=>d.total)), medianTotal:median(dl.map(d=>d.total)), medianUp:median(dl.map(d=>d.upfront)), rec, old, growth: old>0 ? (rec-old)/old : (rec>0?1:0)}; }).sort((a,b)=>b.n-a.n);
-
-  const topTg=tgList.slice(0,12).map(t=>t.target);
-  const topCombos=combos.slice(0,8);
+async function renderPipeline(){
+  const q = stateParams().toString();
+  const d = await fetch('/api/pipeline/aggregates?'+q).then(r=>r.json());
+  const yrs = d.yrs||[];
+  const tgList = d.tg_list||[];
+  const mdList = d.md_list||[];
+  const combos = d.combos||[];
+  const topTg = d.top_tg||[];
+  const modsShown = d.mods_shown||[];
 
   main.innerHTML = title('技术与管线 Modality & Pipeline', PAGE_EN.pipeline) +
   `<div class="card" style="margin-bottom:14px"><p class="hint" style="margin:0">本页按独立交易统计；排名与热力图默认仅含已知有效分类（排除 Other/Unknown/未披露），金额图仅含已披露金额。交易活跃度与金额仅代表公开市场观察，不等同于临床疗效或商业成功概率。Rankings/heatmap use known classifications only; amount charts use disclosed amounts only. Deal activity and value reflect public disclosures, not clinical efficacy or commercial success.</p></div>
@@ -849,37 +839,34 @@ function renderPipeline(deals){
   </div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3><span class="zh">市场热点 · 药物形式应用广度</span> <span class="en">Market Hotspots · Modality Coverage: Targets & Assets</span></h3><p class="hint">比较不同 Modality 覆盖的去重靶点数量与药物资产数量，评估技术路线的应用广度与研发布局，识别具有广泛靶点覆盖或较丰富资产布局的方向。Compares distinct targets and drug assets per modality to assess technological breadth and pipeline footprint, identifying directions with broad target coverage or richer asset portfolios.</p><div id="pl-cov" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=数量 Count（并排柱：去重靶点数 Targets / 去重资产数 Assets）。核心：分别比较各技术路线的覆盖广度。X=Modality; Y=count (grouped bars: distinct targets / distinct assets).</div></div>
+    <div class="card"><h3><span class="zh">市场热点 · 药物形式应用广度</span> <span class="en">Market Hotspots · Modality Coverage: Targets & Assets</span></h3><p class="hint">比较不同 Modality 覆盖的去重靶点数量与药物资产数量，评估技术路线的应用广度与研发布局，识别具有广泛靶点覆盖或较丰富资产布局的方向。Compares distinct targets and drug assets per modality to assess technological breadth and pipeline footprint, identifying directions with broad target coverage or richer asset portfolios.</p><div id="pl-cov" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=数量 Count（并排柱：去重靶点数 Targets / 去重资产数 Assets）。X=Modality; Y=count (grouped bars: distinct targets / distinct assets).</div></div>
     <div class="card"><h3><span class="zh">市场热点 · Target × Modality 热力图</span> <span class="en">Market Hotspots · Heatmap</span></h3>
-      <p class="hint">展示不同 Target 与 Modality 组合的交易活跃度分布，识别交易集中的热门靶点与技术路线组合，以及尚待进一步挖掘的潜在细分方向。Shows deal-activity distribution across Target × Modality combinations to identify concentrated hot combos and under-explored niches.</p>
-      <div class="metric-switch" id="pl-heat-metric"></div><div id="pl-heat" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=靶点 Target；颜色越亮（越黄）数值越大。可在右上角切换指标：交易笔数 Deals / 去重资产 Assets。本图仅统计已知有效分类（排除未披露、Other、Unknown），用于识别最活跃或布局最广的 Target × Modality 组合。X=Modality; Y=Target; brighter color = higher value. Switch metric (deal count / distinct assets) at top-right; only known classifications are included (undisclosed, Other and Unknown excluded).</div></div>
+      <p class="hint">展示不同 Target 与 Modality 组合的交易活跃度分布。Shows deal-activity distribution across Target × Modality combinations.</p>
+      <div class="metric-switch" id="pl-heat-metric"></div><div id="pl-heat" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=靶点 Target；颜色越亮数值越大。X=Modality; Y=Target; brighter color = higher value.</div></div>
   </div>
 
   <div class="card" style="margin-top:14px"><h3><span class="zh">交易价值 · Target × Modality 价值气泡图</span> <span class="en">Deal Value · Bubble</span></h3>
-    <p class="hint">对比不同 Target × Modality 组合的交易活跃度与典型交易价值，识别高活跃度、高价值及潜在机会方向，为细分赛道筛选与 BD 策略分析提供依据。Compares activity and typical deal value across Target × Modality combos to spot high-activity, high-value and opportunity directions for segment screening and BD strategy.</p>
-    <p class="hint">气泡大小=独立交易笔数；颜色=单笔金额中位数或首付款中位数（仅已披露且可归属）。Bubble size=distinct deal count; color=median total value or median upfront (disclosed & attributable only).</p>
-    <div class="metric-switch" id="pl-value-color"></div><div id="pl-value" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=靶点 Target；气泡大小=独立交易笔数；颜色=中位金额。核心：识别交易价值更高的组合。Identifies combos with higher deal value.</div></div>
+    <p class="hint">对比不同 Target × Modality 组合的交易活跃度与典型交易价值。Compares activity and typical deal value across Target × Modality combos.</p>
+    <div class="metric-switch" id="pl-value-color"></div><div id="pl-value" class="chart ch-md"></div><div class="hint" style="margin-top:8px">气泡大小=独立交易笔数；颜色=中位金额。Bubble size=deal count; color=median value.</div></div>
 
   <div class="grid g2" style="margin-top:14px">
-    <div class="card"><h3><span class="zh">时间趋势 · Modality 年度活跃度</span> <span class="en">Time Trends · Activity</span></h3><p class="hint">展示不同药物技术路线每年的独立 License-out 交易笔数变化，识别交易活跃度的增长、波动与趋势转变。Tracks yearly distinct licensing-out deal count by modality to identify growth, fluctuation and trend shifts.</p><div id="pl-trend" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=年份 Year；Y=独立交易笔数 Deals。核心：追踪各药物形式的年度授权活跃度，识别持续活跃、近期升温或下降的技术路线。按独立 Deal 去重；一笔交易涉及多个 Modality 时会在对应多个系列中重复关联，故各系列笔数不可直接相加。Tracks annual licensing-out activity by modality to spot rising, stable or declining routes; deduplicated by deal, with multi-modality deals counted in each relevant series (series counts are not mutually exclusive).</div></div>
-    <div class="card"><h3><span class="zh">时间趋势 · Modality 年度占比</span> <span class="en">Time Trends · Share</span></h3><p class="hint">展示各技术路线在每年可分类 License-out 独立交易中的占比变化，用于识别海外授权市场技术结构的演变与相对热点。Shows each modality’s share of classifiable licensing-out deals per year to reveal structural evolution and relative hotspots.</p><div id="pl-share" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=年份 Year；Y=年度交易占比 %（100% 堆叠）。核心：展示各药物形式在授权交易结构中的相对份额变化，识别技术路线的结构性转移。占比分母仅含已知有效分类（排除未披露/Other/Unknown）；多 Modality 交易按多标签统计，各系列占比之和为 100%。Shows each modality’s relative share of annual deals (100% stacked) to reveal structural shifts; the denominator includes known classifications only (undisclosed / Other / Unknown excluded). Multi-modality deals use multi-label counting.</div></div>
+    <div class="card"><h3><span class="zh">时间趋势 · Modality 年度活跃度</span> <span class="en">Time Trends · Activity</span></h3><p class="hint">展示不同药物技术路线每年的独立 License-out 交易笔数变化。Tracks yearly distinct licensing-out deal count by modality.</p><div id="pl-trend" class="chart ch-md"></div></div>
+    <div class="card"><h3><span class="zh">时间趋势 · Modality 年度占比</span> <span class="en">Time Trends · Share</span></h3><p class="hint">展示各技术路线在每年可分类交易中的占比变化。Shows each modality’s share per year.</p><div id="pl-share" class="chart ch-md"></div></div>
   </div>
 
-  <div class="card" style="margin-top:14px"><h3><span class="zh">时间趋势 · 近期增长</span> <span class="en">Time Trends · Recent Growth</span></h3><div id="pl-growth"></div><div class="hint" style="margin-top:8px">核心：对比近期与上一期间的活跃度与占比变化，识别升温技术路线。Compares recent vs prior period to spot rising modalities.</div></div>
+  <div class="card" style="margin-top:14px"><h3><span class="zh">时间趋势 · 近期增长</span> <span class="en">Time Trends · Recent Growth</span></h3><div id="pl-growth"></div></div>
 
   <div class="grid g2" style="margin-top:14px">
     <div class="card"><h3><span class="zh">研发成熟度 · Modality × 阶段</span> <span class="en">Development Maturity · Stage</span></h3>
-      <p class="hint">展示不同 Modality 的临床阶段分布，评估各技术路线的研发成熟度与管线阶段布局。Shows clinical-stage distribution by modality to assess development maturity and pipeline-stage footprint.</p>
-      <div class="metric-switch" id="pl-mat-metric"></div><div id="pl-maturity" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=药物形式 Modality；Y=交易笔数或去重资产；系列=研发阶段。核心：各技术路线的资产成熟度分布。Stage maturity by modality.</div></div>
-    <div class="card"><h3><span class="zh">研发成熟度 · 阶段 × 金额</span> <span class="en">Development Maturity · Value</span></h3><p class="hint">对比不同临床阶段的交易金额，分析研发成熟度与海外授权交易价值的关系。Compares deal value across clinical stages to examine the relationship between development maturity and licensing-out deal value.</p><div id="pl-stagebox" class="chart ch-md"></div><div class="hint" style="margin-top:8px">X=研发阶段 Stage；Y=单笔金额 US$M。核心：金额是否随研发阶段变化。Deal value by stage.</div></div>
+      <div class="metric-switch" id="pl-mat-metric"></div><div id="pl-maturity" class="chart ch-md"></div></div>
+    <div class="card"><h3><span class="zh">研发成熟度 · 阶段 × 金额</span> <span class="en">Development Maturity · Value</span></h3><p class="hint">对比不同临床阶段的交易金额。Compares deal value across clinical stages.</p><div id="pl-stagebox" class="chart ch-md"></div></div>
   </div>
 
-
   <div class="card" style="margin-top:14px"><h3><span class="zh">资产管线</span> <span class="en">Asset Pipeline</span></h3>
-    <p class="hint">代表性资产的研发阶段、临床进展与交易事件。金额为“关联交易金额”，同一交易可能关联多个资产，不可简单求和。Amounts are associated deal amounts; a deal may involve multiple assets and must not be summed as market totals.</p>
-    <div id="pl-assets"></div><div class="hint" style="margin-top:8px">核心：资产明细与关联交易金额（同一交易可能关联多个资产）。Asset detail with associated deal values.</div></div>`;
+    <p class="hint">代表性资产的研发阶段、临床进展与交易事件。金额为“关联交易金额”。Amounts are associated deal amounts.</p>
+    <div id="pl-assets"></div></div>`;
 
-  // 模块1 A：排名
+  // 排名
   mount('pl-tg', { tooltip:{...TOOLTIP_DARK, trigger:'axis'}, grid:{left:44,right:8,top:24,bottom:24,containLabel:true},
     xAxis:{type:'category', data:tgList.slice(0,10).map(t=>t.target), name:'靶点 Target', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:24}}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:28, nameTextStyle:{color:'#8b9bb0'}},
     series:[{type:'bar', barMaxWidth:24, data:tgList.slice(0,10).map(t=>({value:t.n, itemStyle:{color:'#60a5fa', borderRadius:[4,4,0,0]}}))}] });
@@ -887,7 +874,7 @@ function renderPipeline(deals){
     xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), name:'药物形式 Modality', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:30, nameTextStyle:{color:'#8b9bb0'}},
     series:[{type:'bar', barMaxWidth:28, data:mdList.map(m=>({value:m.n, itemStyle:{color:modColor(m.modality), borderRadius:[4,4,0,0]}}))}] });
 
-  // 模块1 B：药物形式应用广度（并排柱，不表示可相加）
+  // 广度
   mount('pl-cov', {
     tooltip:{...TOOLTIP_DARK, trigger:'axis', axisPointer:{type:'shadow'}},
     legend:{top:0, data:['去重靶点数 Targets','去重资产数 Assets'], textStyle:{fontSize:11, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
@@ -895,76 +882,70 @@ function renderPipeline(deals){
     xAxis:{type:'category', data:mdList.map(m=>labelOf('modality',m.modality)), name:'药物形式 Modality', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'value', ...AXIS, name:'数量 Count', nameLocation:'middle', nameGap:30, nameTextStyle:{color:'#8b9bb0'}},
     series:[
-      {name:'去重靶点数 Targets', type:'bar', barMaxWidth:16, itemStyle:{color:'#facc15', borderRadius:[4,4,0,0]}, data:mdList.map(m=>m.tg.size)},
-      {name:'去重资产数 Assets', type:'bar', barMaxWidth:16, itemStyle:{color:'#60a5fa', borderRadius:[4,4,0,0]}, data:mdList.map(m=>m.assets.size)}
+      {name:'去重靶点数 Targets', type:'bar', barMaxWidth:16, itemStyle:{color:'#facc15', borderRadius:[4,4,0,0]}, data:mdList.map(m=>m.tg)},
+      {name:'去重资产数 Assets', type:'bar', barMaxWidth:16, itemStyle:{color:'#60a5fa', borderRadius:[4,4,0,0]}, data:mdList.map(m=>m.assets)}
     ]
   });
 
-  // 模块1 C：热力图（笔数 / 去重资产）
-  const modsShown = MODS.filter(m=>m.k!=='Other');
-  const heatData=[]; modsShown.forEach((m,xi)=> topTg.forEach((t,yi)=>{ const list=known.filter(d=>d.target===t && d.modality===m.k); const v = pipeHeatMetric==='count' ? list.length : distinctAssets(list); if(v>0) heatData.push([xi, topTg.length-1-yi, v]); }));
-  const heatMax=Math.max(1,...heatData.map(d=>d[2]));
-  mount('pl-heat', { tooltip:{...TOOLTIP_DARK, formatter:p=>{ const xi=p.value[0], yi=p.value[1]; const t=topTg[topTg.length-1-yi], m=modsShown[xi].k; const list=known.filter(d=>d.target===t && d.modality===m); return `${t} × ${labelOf('modality',m)}<br/>交易笔数 Deals：<b>${list.length}</b><br/>去重资产 Assets：<b>${distinctAssets(list)}</b>`; }},
+  // 热力图
+  const heatCountMap = {}, heatAssetsMap = {};
+  (d.heat_count||[]).forEach(r=>heatCountMap[r.modality+'|'+r.target]=r.v);
+  (d.heat_assets||[]).forEach(r=>heatAssetsMap[r.modality+'|'+r.target]=r.v);
+  const heatData=[]; modsShown.forEach((m,xi)=> topTg.forEach((t,yi)=>{ const v = pipeHeatMetric==='count' ? (heatCountMap[m+'|'+t]||0) : (heatAssetsMap[m+'|'+t]||0); if(v>0) heatData.push([xi, topTg.length-1-yi, v]); }));
+  const heatMax=Math.max(1,...heatData.map(x=>x[2]));
+  mount('pl-heat', { tooltip:{...TOOLTIP_DARK, formatter:p=>{ const xi=p.value[0], yi=p.value[1]; const t=topTg[topTg.length-1-yi], m=modsShown[xi]; return `${t} × ${labelOf('modality',m)}<br/>交易笔数 Deals：<b>${heatCountMap[m+'|'+t]||0}</b><br/>去重资产 Assets：<b>${heatAssetsMap[m+'|'+t]||0}</b>`; }},
     grid:{left:8,right:8,top:8,bottom:8,containLabel:true},
-    xAxis:{type:'category', data:modsShown.map(m=>shortModality(m.k)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:30, interval:0, color:(val,idx)=>modColor(modsShown[idx].k)}},
+    xAxis:{type:'category', data:modsShown.map(m=>shortModality(m)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:30, interval:0, color:(val,idx)=>modColor(modsShown[idx])}},
     yAxis:{type:'category', data:topTg.slice().reverse(), ...AXIS},
     visualMap:{min:0, max:heatMax, show:false, inRange:{color:['#3d3300','#facc15']}},
     series:[{type:'heatmap', data:heatData, label:{show:true, fontSize:10, color:p=>p.value[2]>=heatMax/2?'#fff':'#3d3300'}}] });
   wireSwitch('pl-heat-metric', {count:'交易笔数 Deals', assets:'去重资产 Assets'}, pipeHeatMetric, v=>{ pipeHeatMetric=v; render(); });
 
-  // 模块2 B：价值气泡图
-  const valColorKey = pipeValueColor==='medianTotal' ? 'medianTotal' : 'medianUp';
-  const valRows = combos.filter(c=>topTg.includes(c.target) && c.list.some(d=>d.disclosed));
+  // 价值气泡图
+  const valColorKey = pipeValueColor==='medianTotal' ? 'median_total' : 'median_up';
+  const valRows = combos.filter(c=>topTg.includes(c.target) && (c.median_total||c.median_up));
   const valMax = Math.max(1,...valRows.map(c=>c[valColorKey]||0));
-  mount('pl-value', { tooltip:{...TOOLTIP_DARK, formatter:p=>{ const c=p.data; return `${c.target} × ${c.modality}<br/>独立交易 Deals：<b>${c.n}</b><br/>单笔金额中位数 Median Total：<b>${fmtM(c.medianTotal)}</b><br/>首付款中位数 Median Upfront：<b>${fmtM(c.medianUp)}</b>`; }},
+  mount('pl-value', { tooltip:{...TOOLTIP_DARK, formatter:p=>{ const c=p.data; return `${c.target} × ${c.modality}<br/>独立交易 Deals：<b>${c.n}</b><br/>单笔金额中位数 Median Total：<b>${fmtM(c.median_total)}</b><br/>首付款中位数 Median Upfront：<b>${fmtM(c.median_up)}</b>`; }},
     grid:{left:8,right:8,top:8,bottom:8,containLabel:true},
-    xAxis:{type:'category', data:modsShown.map(m=>labelOf('modality',m.k)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    xAxis:{type:'category', data:modsShown.map(m=>labelOf('modality',m)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'category', data:topTg.slice().reverse(), ...AXIS},
     visualMap:{dimension:2, min:0, max:valMax, calculable:true, right:0, top:'middle', orient:'vertical', textStyle:{color:'#8b9bb0', fontSize:10}, inRange:{color:['#3d3300','#facc15']}},
-    series:[{type:'scatter', data:valRows.map(c=>({value:[modsShown.findIndex(m=>m.k===c.modality), topTg.indexOf(c.target), c[valColorKey]], n:c.n, target:c.target, modality:c.modality, medianTotal:c.medianTotal, medianUp:c.medianUp})), symbolSize:function(v,p){return 10+Math.sqrt(p.data.n)*6;}}] });
+    series:[{type:'scatter', data:valRows.map(c=>({value:[modsShown.indexOf(c.modality), topTg.indexOf(c.target), c[valColorKey]], n:c.n, target:c.target, modality:c.modality, median_total:c.median_total, median_up:c.median_up})), symbolSize:function(v,p){return 10+Math.sqrt(p.data.n)*6;}}] });
   wireSwitch('pl-value-color', {medianTotal:'颜色=中位总金额 Median Total', medianUp:'颜色=首付款中位数 Median Upfront'}, pipeValueColor, v=>{ pipeValueColor=v; render(); });
 
-  // 模块3 A/B：年度活跃度折线 + 年度占比 100% 堆叠面积
-  mount('pl-trend', { color:modsShown.map(m=>modColor(m.k)), tooltip:{...TOOLTIP_DARK, trigger:'axis'},
+  // 年度活跃度 + 占比
+  mount('pl-trend', { color:modsShown.map(m=>modColor(m)), tooltip:{...TOOLTIP_DARK, trigger:'axis'},
     legend:{type:'scroll', top:0, textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
     grid:{left:44,right:8,top:26,bottom:24,containLabel:true},
     xAxis:{type:'category', data:yrs.map(y=>String(y)), name:'年份 Year', nameTextStyle:{color:'#8b9bb0'}, ...AXIS}, yAxis:{type:'value', ...AXIS, name:'交易笔数 Deals', nameLocation:'middle', nameGap:28, nameTextStyle:{color:'#8b9bb0'}},
-    series:modsShown.map(m=>({name:labelOf('modality',m.k), type:'line', smooth:true, symbol:'circle', symbolSize:5, color:modColor(m.k), data:yrs.map(y=>known.filter(d=>d.modality===m.k && d.year===y).length)})) });
-  const shareData = {}; yrs.forEach(y=>{ let tot=0; modsShown.forEach(m=>{ const n=known.filter(d=>d.modality===m.k && d.year===y).length; shareData[m.k+y]=n; tot+=n; }); shareData['__tot'+y]=tot; });
-  mount('pl-share', { color:modsShown.map(m=>modColor(m.k)), tooltip:{...TOOLTIP_DARK, trigger:'axis', valueFormatter:v=>v+'%'},
+    series:(d.trend||[]).map(s=>({name:labelOf('modality',s.name), type:'line', smooth:true, symbol:'circle', symbolSize:5, color:modColor(s.name), data:s.data})) });
+  const shareTot = {}; yrs.forEach((y,idx)=>{ let t=0; (d.trend||[]).forEach(s=>t+=(s.data[idx]||0)); shareTot[idx]=t||1; });
+  mount('pl-share', { color:modsShown.map(m=>modColor(m)), tooltip:{...TOOLTIP_DARK, trigger:'axis', valueFormatter:v=>v+'%'},
     legend:{type:'scroll', top:0, textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
     grid:{left:16,right:8,top:26,bottom:24,containLabel:true},
     xAxis:{type:'category', data:yrs.map(y=>String(y)), name:'年份 Year', nameTextStyle:{color:'#8b9bb0'}, ...AXIS}, yAxis:{type:'value', ...AXIS, max:100, name:'年度占比 %', nameLocation:'middle', nameGap:32, nameTextStyle:{color:'#8b9bb0', fontSize:10}, axisLabel:{color:'#8b9bb0', fontSize:11, formatter:'{value}%'}},
-    series:modsShown.map(m=>({name:labelOf('modality',m.k), type:'line', stack:'total', smooth:true, symbol:'none', areaStyle:{opacity:.6}, color:modColor(m.k), data:yrs.map(y=>{ const tot=shareData['__tot'+y]||1; return +(shareData[m.k+y]/tot*100).toFixed(1); })})) });
+    series:(d.trend||[]).map(s=>({name:labelOf('modality',s.name), type:'line', stack:'total', smooth:true, symbol:'none', areaStyle:{opacity:.6}, color:modColor(s.name), data:s.data.map((v,idx)=>+(v/shareTot[idx]*100).toFixed(1))})) });
 
-  // 模块3 C：近期增长表
-  const recYrs = yrs.slice(-2), prevYrs = yrs.slice(-4,-2);
-  const growthRows = modsShown.map(m=>{ const rec=known.filter(d=>d.modality===m.k && recYrs.includes(d.year)).length; const prev=known.filter(d=>d.modality===m.k && prevYrs.includes(d.year)).length; const recTot=known.filter(d=>recYrs.includes(d.year)).length||1; const prevTot=known.filter(d=>prevYrs.includes(d.year)).length||1; return {m:m.k, rec, prev, recShare:+(rec/recTot*100).toFixed(1), prevShare:+(prev/prevTot*100).toFixed(1), chg:rec-prev}; }).sort((a,b)=>b.rec-a.rec);
-  document.getElementById('pl-growth').innerHTML = `<table class="tbl"><thead><tr><th>药物形式 Modality</th><th>近期交易笔数 Recent Deals (${recYrs.join(',')})</th><th>近期占比 Recent Share</th><th>上一期间笔数 Prev Deals (${prevYrs.join(',')})</th><th>上一期间占比 Prev Share</th><th>笔数变化 Δ Deals</th></tr></thead><tbody>${growthRows.map(r=>`<tr><td>${tagHtml(modColor(r.m), labelOf('modality',r.m))}</td><td class="num">${r.rec}</td><td class="num">${r.recShare}%</td><td class="num">${r.prev}</td><td class="num">${r.prevShare}%</td><td class="num" style="color:${r.chg>=0?'#2dd4bf':'#f87171'}">${r.chg>=0?'+':''}${r.chg}</td></tr>`).join('')}</tbody></table><div class="hint" style="margin-top:8px">样本量较少的 Modality 增长率仅供参考，不直接认定为持续增长趋势。Small samples are noted; growth rates are indicative only.</div>`;
+  // 近期增长
+  document.getElementById('pl-growth').innerHTML = `<table class="tbl"><thead><tr><th>药物形式 Modality</th><th>近期交易笔数 Recent Deals (${(d.rec_years||[]).join(',')})</th><th>近期占比 Recent Share</th><th>上一期间笔数 Prev Deals (${(d.prev_years||[]).join(',')})</th><th>上一期间占比 Prev Share</th><th>笔数变化 Δ Deals</th></tr></thead><tbody>${(d.growth||[]).map(r=>`<tr><td>${tagHtml(modColor(r.modality), labelOf('modality',r.modality))}</td><td class="num">${r.rec}</td><td class="num">${r.rec_share}%</td><td class="num">${r.prev}</td><td class="num">${r.prev_share}%</td><td class="num" style="color:${r.chg>=0?'#2dd4bf':'#f87171'}">${r.chg>=0?'+':''}${r.chg}</td></tr>`).join('')}</tbody></table>`;
 
-  // 模块4：Modality × 阶段（笔数/资产切换） + 阶段金额箱线图
+  // 成熟度
   const stagesShown = STAGES.filter(st=>st!=='Unknown');
-  const matVal = list => pipeMaturityMetric==='deals' ? list.length : distinctAssets(list);
   mount('pl-maturity', { tooltip:{...TOOLTIP_DARK, trigger:'axis', axisPointer:{type:'shadow'}},
     legend:{type:'scroll', top:0, textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
     grid:{left:16,right:8,top:26,bottom:24,containLabel:true},
-    xAxis:{type:'category', data:modsShown.map(m=>labelOf('modality',m.k)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}}, yAxis:{type:'value', ...AXIS},
-    series:stagesShown.map(st=>({name:labelOf('stage',st), type:'bar', stack:'total', itemStyle:{color:STAGE_COLORS[st]}, data:modsShown.map(m=>matVal(known.filter(d=>d.modality===m.k && d.stage===st)))})) });
+    xAxis:{type:'category', data:modsShown.map(m=>labelOf('modality',m)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}}, yAxis:{type:'value', ...AXIS},
+    series:stagesShown.map(st=>({name:labelOf('stage',st), type:'bar', stack:'total', itemStyle:{color:STAGE_COLORS[st]}, data:modsShown.map(m=> pipeMaturityMetric==='deals' ? ((d.maturity_count||{})[m]?.[st]||0) : ((d.maturity_assets||{})[m]?.[st]||0))})) });
   wireSwitch('pl-mat-metric', {deals:'交易笔数 Deals', assets:'去重资产 Assets'}, pipeMaturityMetric, v=>{ pipeMaturityMetric=v; render(); });
-  const stagesPresent = stagesShown.filter(st=>disc.some(d=>d.stage===st));
   mount('pl-stagebox', { tooltip:{...TOOLTIP_DARK, trigger:'item'},
     grid:{left:16,right:8,top:24,bottom:24,containLabel:true},
-    xAxis:{type:'category', data:stagesPresent.map(s=>labelOf('stage',s)), name:'研发阶段 Stage', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
+    xAxis:{type:'category', data:(d.stagebox||[]).map(b=>labelOf('stage',b.stage)), name:'研发阶段 Stage', nameTextStyle:{color:'#8b9bb0'}, ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:18}},
     yAxis:{type:'value', ...AXIS, name:'US$M', nameTextStyle:{color:'#8b9bb0'}},
-    series:[{type:'boxplot', data:stagesPresent.map(st=>quartiles(disc.filter(d=>d.stage===st).map(d=>d.total))), itemStyle:{color:'#facc15', borderColor:'#fde047'}, boxWidth:[12,26]}] });
+    series:[{type:'boxplot', data:(d.stagebox||[]).map(b=>b.q), itemStyle:{color:'#facc15', borderColor:'#fde047'}, boxWidth:[12,26]}] });
 
-
-  // 资产管线表（保留）
-  const assets={}; deals.forEach(d=>{ if(!assets[d.asset]) assets[d.asset]={asset:d.asset, target:d.target, modality:d.modality, indication:d.indication, licensor:d.licensor, stage:d.stage, total:0, n:0}; const a=assets[d.asset]; a.n++; a.total=Math.max(a.total, d.total||0); });
-  const si=s=>STAGES.indexOf(s);
-  const alist=Object.values(assets).sort((a,b)=>(b.total||0)-(a.total||0)).slice(0,16);
+  // 资产管线表
   document.getElementById('pl-assets').innerHTML = `<table class="tbl"><thead><tr><th>资产 Asset</th><th>药物形式 Modality</th><th>靶点 Target</th><th>治疗领域 Therapeutic Area</th><th>研发阶段 Stage</th><th>中国授权方 Licensor</th><th>关联交易金额 Associated Deal Value</th><th>关联交易笔数 Deals</th></tr></thead><tbody>
-    ${alist.map(a=>`<tr onclick="state.page='explorer';state.search='${a.asset}';render();"><td>${a.asset}</td><td>${tagHtml(modColor(a.modality), labelOf('modality',a.modality))}</td><td>${a.target}</td><td>${labelOf('indication',a.indication)}</td><td>${labelOf('stage',a.stage)}</td><td>${a.licensor}</td><td class="num">${fmtM(a.total)}</td><td class="num">${a.n}</td></tr>`).join('')}
+    ${(d.assets||[]).map(a=>`<tr onclick="state.page='explorer';state.search='${a.asset}';render();"><td>${a.asset}</td><td>${tagHtml(modColor(a.modality), labelOf('modality',a.modality))}</td><td>${a.target}</td><td>${labelOf('indication',a.indication)}</td><td>${labelOf('stage',a.stage)}</td><td>${a.licensor}</td><td class="num">${fmtM(a.total)}</td><td class="num">${a.n}</td></tr>`).join('')}
   </tbody></table>`;
 }
 

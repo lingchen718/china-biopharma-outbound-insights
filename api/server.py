@@ -243,6 +243,104 @@ def ep_therapy_opportunity(qs):
             c["cat"] = "新兴"
     return {"rows": tm, "years": yrs, "recent3": recent3, "prev3": prev3}
 
+PIPE_MODS = ["ADC","Bispecific","mAb","Small molecule","CAR-T / Cell","Peptide/Protein","Fusion protein","RNA therapy","Other GTx","Vaccine"]
+PIPE_STAGES = ["Preclinical","IND approved","Phase I","Phase II","Phase III","Registration","Marketed","Multiple Stages"]
+BAD_TARGET = __import__("re").compile(r"未披露|undisclosed|不适用|unknown|待核实|未公开|未具名", __import__("re").I)
+
+def ep_pipeline_aggregates(qs):
+    w, a = filter_clause(qs)
+    raw = rows("SELECT deal_id AS id, asset, target, modality, indication, stage, licensor, year, has_total, has_upfront, upfront_musd, total_value_musd FROM deals" + (w or ""), a)
+    known = [r for r in raw if r["modality"] and r["modality"] not in ("Other","Unknown")
+             and r["target"] and r["target"] != "Other" and not BAD_TARGET.search(r["target"] or "")]
+    yrs = sorted({r["year"] for r in raw})
+
+    def distinct_assets(lst): return len({r["asset"] for r in lst if r["asset"]})
+
+    tg_map = {}
+    for r in known:
+        t = tg_map.setdefault(r["target"], {"n":0, "assets":set()})
+        t["n"] += 1; t["assets"].add(r["asset"])
+    tg_list = sorted(({"target":k,"n":v["n"],"assets":len(v["assets"])} for k,v in tg_map.items()), key=lambda x:-x["n"])
+    top_tg = [t["target"] for t in tg_list[:12]]
+
+    md_map = {}
+    for r in known:
+        m = md_map.setdefault(r["modality"], {"n":0,"tg":set(),"assets":set()})
+        m["n"] += 1; m["tg"].add(r["target"]); m["assets"].add(r["asset"])
+    md_list = []
+    for k in PIPE_MODS:
+        m = md_map.get(k, {"n":0,"tg":set(),"assets":set()})
+        md_list.append({"modality":k,"n":m["n"],"tg":len(m["tg"]),"assets":len(m["assets"])})
+    md_list.sort(key=lambda x:-x["n"])
+
+    combo_map = {}
+    for r in known:
+        combo_map.setdefault((r["target"], r["modality"]), []).append(r)
+    combos = []
+    for (tgt, mod), lst in combo_map.items():
+        dl = [r for r in lst if r["has_total"]]
+        rec = sum(1 for r in lst if r["year"] >= yrs[-2]) if len(yrs)>=2 else len(lst)
+        old = sum(1 for r in lst if r["year"] <= yrs[-3]) if len(yrs)>=3 else 0
+        combos.append({"target":tgt,"modality":mod,"n":len(lst),"assets":distinct_assets(lst),
+                       "total":round(sum(r["total_value_musd"] for r in dl if r["total_value_musd"] is not None),2),
+                       "median_total":median([r["total_value_musd"] for r in dl if r["total_value_musd"] is not None]),
+                       "median_up":median([r["upfront_musd"] for r in dl if r["upfront_musd"] is not None]),
+                       "rec":rec,"old":old,"growth":(rec-old)/old if old>0 else (1 if rec>0 else 0)})
+    combos.sort(key=lambda x:-x["n"])
+
+    trend = {k:{y:0 for y in yrs} for k in PIPE_MODS}
+    for r in known:
+        if r["modality"] in trend and r["year"] in trend[r["modality"]]:
+            trend[r["modality"]][r["year"]] += 1
+    trend_series = [{"name":k,"data":[trend[k][y] for y in yrs]} for k in PIPE_MODS]
+
+    mat_count = {k:{st:0 for st in PIPE_STAGES} for k in PIPE_MODS}
+    mat_assets = {k:{st:set() for st in PIPE_STAGES} for k in PIPE_MODS}
+    for r in known:
+        if r["modality"] in mat_count and r["stage"] in PIPE_STAGES:
+            mat_count[r["modality"]][r["stage"]] += 1
+            mat_assets[r["modality"]][r["stage"]].add(r["asset"])
+    maturity_count = {k:{st:mat_count[k][st] for st in PIPE_STAGES} for k in PIPE_MODS}
+    maturity_assets = {k:{st:len(mat_assets[k][st]) for st in PIPE_STAGES} for k in PIPE_MODS}
+
+    heat_c = {}; heat_a = {}
+    for r in known:
+        k = (r["modality"], r["target"])
+        heat_c[k] = heat_c.get(k,0)+1
+        heat_a.setdefault(k,set()).add(r["asset"])
+    heat_count = [{"modality":m,"target":t,"v":heat_c.get((m,t),0)} for m in PIPE_MODS for t in top_tg if heat_c.get((m,t),0)>0]
+    heat_assets = [{"modality":m,"target":t,"v":len(heat_a.get((m,t),set()))} for m in PIPE_MODS for t in top_tg if heat_a.get((m,t),set())]
+
+    stagebox = []
+    for st in PIPE_STAGES:
+        vals = [r["total_value_musd"] for r in raw if r["stage"]==st and r["has_total"] and r["total_value_musd"] is not None]
+        if vals:
+            stagebox.append({"stage":st,"n":len(vals),"q":quartiles(vals)})
+
+    recYrs = yrs[-2:]; prevYrs = yrs[-4:-2]
+    recTot = sum(1 for r in known if r["year"] in recYrs) or 1
+    prevTot = sum(1 for r in known if r["year"] in prevYrs) or 1
+    growth = []
+    for k in PIPE_MODS:
+        rec = sum(1 for r in known if r["modality"]==k and r["year"] in recYrs)
+        prev = sum(1 for r in known if r["modality"]==k and r["year"] in prevYrs)
+        growth.append({"modality":k,"rec":rec,"prev":prev,"rec_share":round(rec/recTot*100,1),"prev_share":round(prev/prevTot*100,1),"chg":rec-prev})
+    growth.sort(key=lambda x:-x["rec"])
+
+    asset_map = {}
+    for r in raw:
+        a = asset_map.setdefault(r["asset"], {"asset":r["asset"],"target":r["target"],"modality":r["modality"],
+            "indication":r["indication"],"stage":r["stage"],"licensor":r["licensor"],"total":0.0,"n":0})
+        a["n"] += 1
+        if r["total_value_musd"] is not None:
+            a["total"] = max(a["total"], r["total_value_musd"])
+    assets = sorted(asset_map.values(), key=lambda x:-x["total"])[:16]
+
+    return {"yrs":yrs, "tg_list":tg_list, "top_tg":top_tg, "md_list":md_list, "mods_shown":PIPE_MODS,
+            "combos":combos, "trend":trend_series, "maturity_count":maturity_count, "maturity_assets":maturity_assets,
+            "heat_count":heat_count, "heat_assets":heat_assets, "stagebox":stagebox, "growth":growth,
+            "rec_years":recYrs, "prev_years":prevYrs, "assets":assets}
+
 def ep_companies_leaderboard(qs):
     side = "licensor" if qs.get("side",["licensor"])[0]=="licensor" else "licensee"
     sort = qs.get("sort",["deals"])[0]
@@ -281,6 +379,7 @@ ENDPOINTS = {
     "/api/therapy/area-trends": lambda qs: ep_therapy_trends(),
     "/api/therapy/deep-dive": ep_therapy_deep,
     "/api/therapy/opportunity-matrix": ep_therapy_opportunity,
+    "/api/pipeline/aggregates": ep_pipeline_aggregates,
     "/api/companies/leaderboard": ep_companies_leaderboard,
     "/api/companies/network": lambda qs: ep_companies_network(),
 }
