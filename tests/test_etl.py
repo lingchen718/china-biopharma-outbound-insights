@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ETL 规范化逻辑的单元测试（无需数据库）。"""
+import csv
 import importlib
 import json
 import os
@@ -64,6 +65,39 @@ class TestBuildDatasetReproducibility(unittest.TestCase):
         with open(os.path.join(build_dataset.OUT_DIR, "deals.json"), encoding="utf-8") as f:
             meta = json.load(f)["meta"]
         self.assertEqual(meta["data_fingerprint"], build_dataset._source_fingerprint())
+
+
+class TestUpdates(unittest.TestCase):
+    HEADER = ["deal_id","announce_date","licensor","licensee","drug_name","target","modality","indication","deal_type","stage","upfront","total_value","value_disclosure","milestones","territory","source_name","source_title","publish_date","analyst_note","confidence","region","currency","source_url","fx_rate","upfront_musd","total_value_musd"]
+
+    def _write(self, path, rows):
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(self.HEADER)
+            w.writerows(rows)
+
+    def test_upsert_add_and_update(self):
+        tmp = tempfile.mkdtemp(prefix="etl-upd-")
+        base = os.path.join(tmp, "base"); os.makedirs(base)
+        upd = os.path.join(tmp, "upd"); os.makedirs(upd)
+        self._write(os.path.join(base, "cleaned_data_2020.csv"), [
+            ["2020-A","2020-01-10","LicA","Lic1","AssetA","T1","ADC","Oncology","License-out","Phase II","100","400","","","US","","","","","high","Global","USD","","1.0","100","400"],
+            ["2020-B","2020-02-10","LicB","Lic2","AssetB","T2","mAb","Autoimmune","License-out","Phase I","","","","","EU","","","","","high","Europe","USD","","1.0","",""],
+        ])
+        self._write(os.path.join(upd, "2020_additions.csv"), [
+            ["2020-B","2020-02-10","LicB","Lic2","AssetB","T2","mAb","Autoimmune","License-out","Phase I","30","90","","","EU","","","","","high","Europe","USD","","1.0","30","90"],
+            ["2020-C","2020-03-10","LicC","Lic3","AssetC","T3","ADC","Oncology","License-out","Phase III","50","150","","","US","","","","","high","US & Canada","USD","","1.0","50","150"],
+        ])
+        deals, unmapped, terr_review, issues, yearly, update_stats, unique = build_dataset.collect(base, upd, years=[2020])
+        by = {d["id"]: d for d in deals}
+        self.assertEqual(unique, 3)
+        self.assertEqual(by["2020-B"]["upfront_musd"], 30.0)
+        self.assertEqual(by["2020-B"]["total_value_musd"], 90.0)
+        self.assertIn("2020-C", by)
+        self.assertEqual(len(update_stats), 1)
+        self.assertEqual(update_stats[0]["added"], 1)
+        self.assertEqual(update_stats[0]["updated"], 1)
+        self.assertEqual(update_stats[0]["skipped"], 0)
 
 
 class TestFnum(unittest.TestCase):
