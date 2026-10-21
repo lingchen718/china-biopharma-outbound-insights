@@ -106,7 +106,7 @@
   .fp-bar { height: 4px; border-radius: 2px; background: #1d2a40; margin-top: 8px; overflow: hidden; }
   .fp-bar span { display: block; height: 100%; border-radius: 2px; }
 
-  .insight { border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 8px; padding: 9px 12px; font-size: 12.5px; color: var(--ink-2); margin-top: 10px; line-height: 1.55; }
+  .insight { border-left: 3px solid #22d3ee; background: rgba(34,211,238,.12); border-radius: 8px; padding: 9px 12px; font-size: 12.5px; color: var(--ink-2); margin-top: 10px; line-height: 1.55; }
   .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .duo > div { position: relative; }
   .duo .cap { text-align: center; font-size: 11px; color: var(--muted); margin-top: 4px; }
@@ -607,7 +607,7 @@ function keyInsight(deals, dim){
   const en = topU
     ? `<b>${labelOf(dim,topC)}</b> has the largest deal share (${pctC}%); <b>${labelOf(dim,topU)}</b> has the largest disclosed upfront share (${pctU}%); the largest gap between deal share and upfront share is <b>${labelOf(dim,gap)}</b>.`
     : `<b>${labelOf(dim,topC)}</b> has the largest deal share (${pctC}%); the largest gap between deal share and upfront share is <b>${labelOf(dim,gap)}</b>.`;
-  return `<div><b style="color:var(--accent)">关键发现：</b>${cn}</div><div style="margin-top:6px"><b style="color:var(--accent)">Key Insight:</b> ${en}</div>`;
+  return `<div><b style="color:#22d3ee">关键发现：</b>${cn}</div><div style="margin-top:6px"><b style="color:#22d3ee">Key Insight:</b> ${en}</div>`;
 }
 
 function keyInsightFromServer(data, dim){
@@ -627,7 +627,7 @@ function keyInsightFromServer(data, dim){
   const en = topU
     ? `<b>${labelOf(dim,topC.key)}</b> has the largest deal share (${pctC}%); <b>${labelOf(dim,topU.key)}</b> has the largest disclosed upfront share (${pctU}%); the largest gap between deal share and upfront share is <b>${labelOf(dim,gap)}</b>.`
     : `<b>${labelOf(dim,topC.key)}</b> has the largest deal share (${pctC}%); the largest gap between deal share and upfront share is <b>${labelOf(dim,gap)}</b>.`;
-  return `<div><b style="color:var(--accent)">关键发现：</b>${cn}</div><div style="margin-top:6px"><b style="color:var(--accent)">Key Insight:</b> ${en}</div>`;
+  return `<div><b style="color:#22d3ee">关键发现：</b>${cn}</div><div style="margin-top:6px"><b style="color:#22d3ee">Key Insight:</b> ${en}</div>`;
 }
 
 async function renderLandscape(){
@@ -635,7 +635,7 @@ async function renderLandscape(){
     {key:'stage', t:'按研发阶段 By Asset Stage', q:'At what development stage are the deal assets at signing? This shows whether the market favors early-stage assets or late-stage, near-commercial assets — reflecting risk appetite and asset maturity.', color:STAGE_COLORS},
     {key:'modality', t:'按技术类型 By Modality', q:'Which drug modalities attract more deal attention and upfront payments?', color:Object.fromEntries(MODS.map(m=>[m.k,m.c]))},
     {key:'indication', t:'按治疗领域 By Therapeutic Area', q:'Where is deal activity concentrated by disease area?', color:IND_COLORS},
-    {key:'dealType', t:'按交易类型 By Deal Type', q:'What kinds of deals are happening?', color:DTYPE_COLORS}
+    {key:'dealType', api:'deal_type', t:'按交易类型 By Deal Type', q:'What kinds of deals are happening?', color:DTYPE_COLORS}
   ];
   main.innerHTML = title('交易格局 Deal Landscape', PAGE_EN.landscape) +
     `<div class="grid g2">${dims.map((d,i)=>`
@@ -648,7 +648,7 @@ async function renderLandscape(){
       </div>`).join('')}</div>`;
   const q = stateParams().toString();
   await Promise.all(dims.map(async (d,i)=>{
-    const data = await fetch(`/api/landscape/${d.key}?${q}`).then(r=>r.json());
+    const data = await fetch(`/api/landscape/${d.api||d.key}?${q}`).then(r=>r.json());
     mount(`ls-count-${i}`, pieCentered((data.counts||[]).map(x=>({name:labelOf(d.key,x.key), value:x.value, itemStyle:{color:d.color[x.key]||'#94a3b8'}})), data.total||0, 'Deals'));
     mount(`ls-up-${i}`, pieCentered((data.upfront||[]).map(x=>({name:labelOf(d.key,x.key), value:round2(x.value), itemStyle:{color:d.color[x.key]||'#94a3b8'}})), fmtM(sum((data.upfront||[]).map(x=>x.value))), 'Total Upfront'));
     document.getElementById(`ls-ins-${i}`).innerHTML = keyInsightFromServer(data, d.key);
