@@ -62,7 +62,9 @@
 
   .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
   .kpis-inline { grid-template-columns: repeat(3, 1fr); }
-  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+  .kpi { position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+  .kpi::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--k, var(--accent)); }
+  .kpi .value { color: var(--k, var(--ink)); }
   .kpi .label { font-size: 12px; color: var(--muted); }
   .kpi .value { font-size: 24px; font-weight: 700; margin-top: 6px; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
   .kpi .sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
@@ -493,14 +495,14 @@ function syncUrl(){
 
 function kpiHtmlFromServer(k){
   const items = [
-    ['交易笔数 Total Deals', fmtInt(k.total_deals||0), 'Deals'],
-    ['披露总额 Total Value', fmtM(k.total_value), 'Disclosed'],
-    ['最高单笔 Highest Deal', fmtM(k.highest_deal), 'Highest'],
-    ['首付款 Upfront', fmtM(k.total_upfront), 'Upfront'],
-    ['中国授权方 CN Licensors', fmtInt(k.licensors||0), 'Licensors'],
-    ['海外引进方 Overseas Licensee', fmtInt(k.licensees||0), 'Licensees']
+    ['交易笔数 Total Deals', fmtInt(k.total_deals||0), 'Deals', '#facc15'],
+    ['披露总额 Total Value', fmtM(k.total_value), 'Disclosed', '#60a5fa'],
+    ['最高单笔 Highest Deal', fmtM(k.highest_deal), 'Highest', '#f87171'],
+    ['首付款 Upfront', fmtM(k.total_upfront), 'Upfront', '#34d399'],
+    ['中国授权方 CN Licensors', fmtInt(k.licensors||0), 'Licensors', '#c084fc'],
+    ['海外引进方 Overseas Licensee', fmtInt(k.licensees||0), 'Licensees', '#22d3ee']
   ];
-  return `<div class="kpis">${items.map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}</div>`;
+  return `<div class="kpis">${items.map(([l,v,s,c])=>`<div class="kpi" style="--k:${c}"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}</div>`;
 }
 function trendFromServer(resp, metric, dim){
   const years = resp.years || [];
