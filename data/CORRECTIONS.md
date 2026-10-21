@@ -26,7 +26,9 @@
 - 移除交易 ID：
   - `2023-PhaseB-JiXing-71e9c04c`
   - `2023-MerckK-Hasten-be982e78`
-- 原因与依据：方向/范围复核后剔除。其中 `2023-MerckK-Hasten-be982e78` 为中国方受让境外资产（inbound），不符合「中国药企出海（licensing-out）」口径；`2023-PhaseB-JiXing-71e9c04c` 待补充具体剔除原因。
+- 原因与依据：方向/范围复核后剔除，均不符合「中国药企出海（licensing-out）」口径。
+  - `2023-PhaseB-JiXing-71e9c04c`：中国授权方（licensor）字段为外国公司 PhaseBio Pharmaceuticals, Inc.（实际为境外方向中国方箕星药业转让资产，inbound）。
+  - `2023-MerckK-Hasten-be982e78`：中国方（海森生物）受让境外资产（inbound）。
 - 相关提交：`bf0420c`
 
 ### 金额口径说明（基准）
