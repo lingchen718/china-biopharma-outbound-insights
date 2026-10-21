@@ -1126,20 +1126,46 @@ function renderCompanies(deals){
 }
 
 // ===== 交易数据库 =====
-function renderExplorer(deals){
+let exPage = 0;
+const EX_PAGE_SIZE = 50;
+
+async function fetchExplorerPage(){
+  const p = new URLSearchParams(stateParams().toString());
+  p.set('limit', String(EX_PAGE_SIZE));
+  p.set('offset', String(exPage * EX_PAGE_SIZE));
+  return fetch('/api/deals?'+p.toString()).then(r=>r.json());
+}
+
+async function renderExplorer(){
+  const data = await fetchExplorerPage();
+  const total = data.total || 0;
+  const rows = data.deals || [];
+  const totalPages = Math.max(1, Math.ceil(total/EX_PAGE_SIZE));
   main.innerHTML = title('交易数据库 Transaction Explorer', PAGE_EN.explorer) +
   `<div class="card">
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
       <input id="ex-search" class="dd-btn" style="flex:1;padding:9px 12px" placeholder="按公司 / 资产 / 靶点 / 治疗领域检索…" value="${state.search.replace(/"/g,'&quot;')}">
-      <span id="ex-count" style="color:var(--muted);white-space:nowrap">共 ${deals.length} 笔</span>
+      <span id="ex-count" style="color:var(--muted);white-space:nowrap">共 ${total} 笔</span>
     </div>
-    <div id="ex-table">${dealTableHtml(deals.slice(0,150))}</div>
+    <div id="ex-table">${dealTableHtml(rows.map(normalizeDeal))}</div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:flex-end">
+      <button class="dd-btn" id="ex-prev" ${exPage<=0?'disabled':''}>上一页 Prev</button>
+      <span style="color:var(--muted)">第 ${exPage+1} / ${totalPages} 页</span>
+      <button class="dd-btn" id="ex-next" ${exPage>=totalPages-1?'disabled':''}>下一页 Next</button>
+    </div>
   </div>`;
   document.getElementById('ex-search').oninput = e=>{
-    state.search=e.target.value; syncUrl(); const d=filtered();
-    document.getElementById('ex-count').textContent='共 '+d.length+' 笔';
-    document.getElementById('ex-table').innerHTML=dealTableHtml(d.slice(0,150));
+    state.search = e.target.value; syncUrl();
+    clearTimeout(renderExplorer._t);
+    renderExplorer._t = setTimeout(async ()=>{
+      exPage = 0;
+      const d2 = await fetchExplorerPage();
+      document.getElementById('ex-count').textContent = '共 ' + (d2.total||0) + ' 笔';
+      document.getElementById('ex-table').innerHTML = dealTableHtml((d2.deals||[]).map(normalizeDeal));
+    }, 300);
   };
+  document.getElementById('ex-prev').onclick = ()=>{ exPage = Math.max(0, exPage-1); renderMain(); };
+  document.getElementById('ex-next').onclick = ()=>{ exPage++; renderMain(); };
 }
 
 // ===== 弹窗 =====
@@ -1267,11 +1293,12 @@ async function renderMain(){
   if(state.page==='overview'){ await renderOverview(); return; }
   if(state.page==='landscape'){ await renderLandscape(); return; }
   if(state.page==='economics'){ await renderEconomics(); return; }
+  if(state.page==='explorer'){ await renderExplorer(); return; }
   // 其余页面：从服务端按当前筛选拉取过滤后的交易，再做页面内聚合
   const q = stateParams().toString();
   const resp = await fetch('/api/deals?'+q).then(r=>r.json());
   const deals = (resp.deals||[]).map(normalizeDeal);
-  const pages={pipeline:renderPipeline, therapy:renderTherapy, companies:renderCompanies, explorer:renderExplorer};
+  const pages={pipeline:renderPipeline, therapy:renderTherapy, companies:renderCompanies};
   (pages[state.page]||renderPipeline)(deals);
 }
 function syncNav(){ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.page===state.page)); }
@@ -1281,7 +1308,7 @@ function syncFilterbar(){
   document.getElementById('fy0').value=state.years[0]; document.getElementById('fy1').value=state.years[1];
 }
 function render(){ buildNav(); buildFilterbar(); wireNav(); wireFilterbar(); renderMain(); syncUrl(); }
-function refresh(){ syncNav(); syncFilterbar(); renderMain(); }
+function refresh(){ syncNav(); syncFilterbar(); if(state.page==='explorer') exPage=0; renderMain(); }
 
 function wireNav(){
   document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{ state.page=b.dataset.page; refresh(); });

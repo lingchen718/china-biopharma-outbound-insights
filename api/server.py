@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """本地 API + 静态站点服务（仅标准库）。聚合逻辑全部在服务端 SQL/内存完成。"""
-import json, mimetypes, os, sqlite3, subprocess, sys
+import json, mimetypes, os, sqlite3, subprocess, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -10,6 +10,22 @@ DB_PATH = os.path.join(ROOT, "db", "app.db")
 DEMO_DIR = os.path.join(ROOT, "demo")
 PORT = int(os.environ.get("PORT", "8090"))
 HOST = os.environ.get("HOST", "127.0.0.1")
+MAX_PAGE_SIZE = 1000
+CACHE_TTL = 30
+_CACHE = {}
+
+def cached(key, fn):
+    now = time.time()
+    hit = _CACHE.get(key)
+    if hit and hit[0] > now:
+        return hit[1]
+    val = fn()
+    _CACHE[key] = (now + CACHE_TTL, val)
+    if len(_CACHE) > 500:
+        for k in list(_CACHE):
+            if _CACHE[k][0] <= now:
+                _CACHE.pop(k, None)
+    return val
 
 def ensure_db():
     if not os.path.exists(DB_PATH):
@@ -81,12 +97,19 @@ def ep_meta():
 def ep_deals(qs):
     w, a = filter_clause(qs)
     limit = int(qs.get("limit",[0])[0]) or None
+    offset = int(qs.get("offset",[0])[0]) or 0
+    if limit is not None:
+        limit = max(1, min(limit, MAX_PAGE_SIZE))
+    total = one("SELECT COUNT(*) AS n FROM deals" + w, a)["n"]
     sql = ("SELECT deal_id AS id, date, year, licensor, licensee, asset, target, modality, indication, stage, "
            "deal_type, region, territory, confidence, upfront_musd, total_value_musd, milestone_musd, milestone_derivable, "
            "has_upfront, has_total, value_disclosure, source_name, source_title, source_url, publish_date, analyst_note "
            "FROM deals" + w + " ORDER BY date DESC")
-    if limit: sql += " LIMIT " + str(limit)
-    return {"deals": [boolify(r) for r in rows(sql, a)]}
+    args = a
+    if limit is not None:
+        sql += " LIMIT ? OFFSET ?"
+        args = a + [limit, offset]
+    return {"deals": [boolify(r) for r in rows(sql, args)], "total": total}
 
 def ep_overview_kpis(qs):
     w, a = filter_clause(qs)
@@ -413,11 +436,17 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers(); self.wfile.write(data)
     def do_GET(self):
         p = urlparse(self.path); qs = parse_qs(p.query)
+        key = p.path + ("?" + p.query if p.query else "")
         if p.path.startswith("/api/landscape/"):
-            return self._json(ep_landscape(qs, p.path.rsplit("/",1)[-1]))
+            dim = p.path.rsplit("/",1)[-1]
+            try: return self._json(cached(key, lambda: ep_landscape(qs, dim)))
+            except Exception as e: return self._json({"error": str(e)}, 500)
         fn = ENDPOINTS.get(p.path)
         if fn:
-            try: return self._json(fn(qs))
+            try:
+                if p.path == "/api/deals":
+                    return self._json(fn(qs))
+                return self._json(cached(key, lambda: fn(qs)))
             except Exception as e: return self._json({"error": str(e)}, 500)
         return self._static(p.path)
     def log_message(self, fmt, *args): pass
