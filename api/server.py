@@ -68,7 +68,7 @@ def filter_clause(qs):
     where, args = [], []
     for k in ("year_from","year_to"):
         if k in qs: where.append("year" + (">=" if k=="year_from" else "<=") + " ?"); args.append(int(qs[k][0]))
-    for k, col in (("deal_type","deal_type"),("modality","modality"),("indication","indication"),("stage","stage"),("region","region")):
+    for k, col in (("deal_type","deal_type"),("modality","modality"),("indication","indication"),("stage","stage"),("region","region"),("region_group","region_group")):
         if k in qs:
             vals = [x for x in qs[k][0].split(",") if x]
             if vals:
@@ -90,7 +90,7 @@ def filter_clause(qs):
 # ---------- 页面聚合 ----------
 def ep_meta():
     enums = {}
-    for dim in ["modality","indication","stage","deal_type","region"]:
+    for dim in ["modality","indication","stage","deal_type","region","region_group","geo_territory"]:
         enums[dim] = [r["v"] for r in rows(f"SELECT DISTINCT {dim} AS v FROM deals WHERE {dim} IS NOT NULL AND {dim}!='' ORDER BY {dim}")]
     return {"total_rows": len(rows("SELECT deal_id FROM deals")), "enums": enums}
 
@@ -102,7 +102,8 @@ def ep_deals(qs):
         limit = max(1, min(limit, MAX_PAGE_SIZE))
     total = one("SELECT COUNT(*) AS n FROM deals" + w, a)["n"]
     sql = ("SELECT deal_id AS id, date, year, licensor, licensee, asset, target, modality, indication, stage, "
-           "deal_type, region, territory, confidence, upfront_musd, total_value_musd, milestone_musd, milestone_derivable, "
+           "deal_type, region, region_group, territory, geo_territory, geo_region_group, geo_status, confidence, "
+           "upfront_musd, total_value_musd, milestone_musd, milestone_derivable, "
            "has_upfront, has_total, value_disclosure, source_name, source_title, source_url, publish_date, analyst_note "
            "FROM deals" + w + " ORDER BY date DESC")
     args = a
@@ -135,53 +136,17 @@ def ep_geo(qs):
     w, a = filter_clause(qs)
     return rows("SELECT region, COUNT(*) AS deals, COALESCE(SUM(total_value_musd),0) AS value FROM deals" + w + " GROUP BY region ORDER BY deals DESC LIMIT 8", a)
 
-COUNTRY_KEYWORDS = [
-    ("United States", ("united states"," us","美国","美加")),
-    ("Canada", ("canada","加拿大")),
-    ("Japan", ("japan","日本")),
-    ("South Korea", ("korea","韩国")),
-    ("Germany", ("germany","德国")),
-    ("United Kingdom", ("united kingdom"," uk","英国")),
-    ("France", ("france","法国")),
-    ("Switzerland", ("switzerland","瑞士")),
-    ("Singapore", ("singapore","新加坡")),
-    ("Australia", ("australia","澳大利亚","澳洲")),
-    ("Indonesia", ("indonesia","印尼","印度尼西亚")),
-    ("India", ("india","印度")),
-    ("Brazil", ("brazil","巴西")),
-    ("Europe", ("europe"," eu","欧盟","欧洲")),
-    ("Southeast Asia", ("southeast asia","东南亚")),
-    ("Middle East", ("middle east","中东")),
-    ("Global", ("global","全球")),
-]
-COUNTRY_REGION = {
-    "United States":"US & Canada","Canada":"US & Canada",
-    "Japan":"APAC","South Korea":"APAC","Singapore":"APAC","Australia":"APAC",
-    "Germany":"Europe","United Kingdom":"Europe","France":"Europe","Switzerland":"Europe",
-    "Indonesia":"Emerging Markets","India":"Emerging Markets","Brazil":"Emerging Markets",
-    "Europe":"Europe","Southeast Asia":"APAC","Middle East":"Emerging Markets","Global":"Global",
-}
-
-def _territory_countries(terr):
-    t = (terr or "").lower()
-    found = []
-    for c, kws in COUNTRY_KEYWORDS:
-        for kw in kws:
-            if kw in t:
-                found.append(c); break
-    return found if found else ["Other"]
-
 def ep_geo_countries(qs):
     w, a = filter_clause(qs)
-    raw = rows("SELECT territory, has_total, total_value_musd FROM deals" + (w or ""), a)
+    raw = rows("SELECT geo_territory, geo_region_group, has_total, total_value_musd FROM deals" + (w or ""), a)
     agg = {}
     for r in raw:
-        for c in _territory_countries(r["territory"]):
-            g = agg.setdefault(c, {"deals":0,"value":0.0})
-            g["deals"] += 1
-            if r["has_total"] and r["total_value_musd"] is not None:
-                g["value"] += r["total_value_musd"]
-    out = [{"country":c,"region":COUNTRY_REGION.get(c,"Other"),"deals":g["deals"],"value":round(g["value"],2)} for c,g in agg.items()]
+        k = r["geo_territory"] or "Other"
+        g = agg.setdefault(k, {"deals":0,"value":0.0,"region":r["geo_region_group"] or "Other"})
+        g["deals"] += 1
+        if r["has_total"] and r["total_value_musd"] is not None:
+            g["value"] += r["total_value_musd"]
+    out = [{"country":k,"region":g["region"],"deals":g["deals"],"value":round(g["value"],2)} for k,g in agg.items()]
     out.sort(key=lambda x:-x["deals"])
     return out[:12]
 

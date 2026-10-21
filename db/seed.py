@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS deals (
   date TEXT, year INTEGER,
   licensor TEXT, licensee TEXT, asset TEXT, target TEXT,
   modality TEXT, indication TEXT, stage TEXT, deal_type TEXT,
-  region TEXT, territory TEXT, confidence TEXT, currency TEXT, fx_rate REAL,
+  region TEXT, territory TEXT, region_group TEXT, geo_territory TEXT, geo_region_group TEXT, geo_status TEXT,
+  confidence TEXT, currency TEXT, fx_rate REAL,
   upfront REAL, total_value REAL,
   upfront_musd REAL, total_value_musd REAL, milestone_musd REAL,
   milestone_derivable INTEGER, has_upfront INTEGER, has_total INTEGER,
@@ -28,7 +29,8 @@ CREATE INDEX IF NOT EXISTS idx_deals_region ON deals(region);
 """
 
 COLS = ["id","date","year","licensor","licensee","asset","target","modality",
-        "indication","stage","deal_type","region","territory","confidence","currency",
+        "indication","stage","deal_type","region","territory","region_group",
+        "geo_territory","geo_region_group","geo_status","confidence","currency",
         "fx_rate","upfront","total_value","upfront_musd","total_value_musd",
         "milestone_musd","milestone_derivable","has_upfront","has_total",
         "value_disclosure","source_name","source_title","source_url","publish_date","analyst_note"]

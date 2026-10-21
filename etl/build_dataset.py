@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """读取 2020–2026 清洗后 CSV，规范化并输出统一数据集与质量报告。"""
-import csv, hashlib, json, os
+import csv, hashlib, json, os, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from etl.geo_taxonomy import REGION_CANON, REGION_GROUPS, resolve_region, resolve_territory
 BASE = os.environ.get("ETL_DATA_DIR", os.path.join(ROOT, "normalized_data"))
 YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
 OUT_DIR = os.path.join(ROOT, "data")
@@ -94,17 +98,22 @@ def fnum(s):
         return None
 
 def _source_fingerprint():
-    """按输入 CSV 内容计算确定性指纹（不依赖日期/环境，保证可复现）。"""
+    """按输入 CSV 与地域分类规则内容计算确定性指纹（不依赖日期/环境，保证可复现）。"""
     h = hashlib.sha256()
     for y in YEARS:
         with open(os.path.join(BASE, f"cleaned_data_{y}.csv"), "rb") as f:
             h.update(f.read())
         h.update(b"\x00")
+    # 分类规则变化也会改变输出，需纳入指纹，避免“改了规则但快照指纹不变”的漂移
+    with open(os.path.join(os.path.dirname(__file__), "geo_taxonomy.py"), "rb") as f:
+        h.update(f.read())
+    h.update(b"\x00")
     return h.hexdigest()[:12]
 
 def main():
     deals = []
     unmapped = {k: set() for k in ("modality", "indication", "stage", "deal_type", "region")}
+    terr_review = set()
     issues = []
     seen_ids = {}
     yearly = []
@@ -146,6 +155,14 @@ def main():
             if "、" in (r.get("indication") or ""):
                 n_multi += 1
 
+            region_raw = (r.get("region") or "").strip()
+            region_canon, region_group = resolve_region(region_raw)
+            if region_raw and region_canon == "Other" and region_raw not in REGION_CANON:
+                unmapped["region"].add(region_raw)
+            geo_territory, geo_region_group, geo_status = resolve_territory(r.get("territory"))
+            if geo_status == "review" and (r.get("territory") or "").strip():
+                terr_review.add((r.get("territory") or "").strip())
+
             date = (r.get("announce_date") or "").strip()
             year = int(date[:4]) if len(date) >= 4 and date[:4].isdigit() else y
 
@@ -166,7 +183,11 @@ def main():
                 "indication": ind,
                 "stage": stage,
                 "deal_type": deal_type,
-                "region": norm("region", REGION, r.get("region"), unmapped),
+                "region": region_canon,
+                "region_group": region_group,
+                "geo_territory": geo_territory,
+                "geo_region_group": geo_region_group,
+                "geo_status": geo_status,
                 "territory": (r.get("territory") or "").strip(),
                 "confidence": conf,
                 "currency": (r.get("currency") or "").strip() or None,
@@ -198,6 +219,8 @@ def main():
         "stage": sorted({d["stage"] for d in deals}),
         "deal_type": sorted({d["deal_type"] for d in deals}),
         "region": sorted({d["region"] for d in deals}),
+        "region_group": sorted({d["region_group"] for d in deals}),
+        "geo_territory": sorted({d["geo_territory"] for d in deals}),
         "confidence": sorted({d["confidence"] for d in deals}),
         "data_fingerprint": _source_fingerprint(),
     }
@@ -226,6 +249,13 @@ def main():
             lines.append(f"- **{k}**: {sorted(vs)}")
     if not any(unmapped.values()):
         lines.append("- 无")
+    lines.append("")
+    lines.append("## 地域解析待人工复核（territory）")
+    lines.append(f"- 未解析条数：{len(terr_review)}")
+    for t in sorted(terr_review)[:40]:
+        lines.append(f"- {t}")
+    if len(terr_review) > 40:
+        lines.append(f"- … 以及其余 {len(terr_review) - 40} 条")
     lines.append("")
     lines.append("## 其他问题")
     if issues:

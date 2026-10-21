@@ -189,6 +189,9 @@ const REGIONS = ['US & Canada','Europe','APAC','Emerging Markets','Global','Glob
 const REGION_LABEL = {'US & Canada':'美国+加拿大 US & Canada','Europe':'欧洲 Europe','APAC':'亚太 APAC','Emerging Markets':'新兴市场 Emerging Markets','Global':'全球 Global','Global ex-Greater China':'全球除大中华区 Global ex-Greater China','Japan':'日本 Japan','South Korea':'韩国 South Korea','Greater China':'大中华 Greater China','China Mainland':'中国境内 China Mainland','North America':'北美 North America','US & Europe':'欧美区 US & Europe','Other':'其他 Other'};
 const CONF = ['high','high','medium','medium','low'];
 const REGION_FLAGS = {'US & Canada':'🇺🇸','Europe':'🇪🇺','APAC':'🌏','Emerging Markets':'🌍','Global':'🌎','Global ex-Greater China':'🌐','Japan':'🇯🇵','South Korea':'🇰🇷','Greater China':'🇨🇳','China Mainland':'🇨🇳','North America':'🌎','US & Europe':'🌐','Other':'🏳️'};
+const REGION_GROUPS = ['Global','Global ex-Greater China','Greater China','North America','Europe','US & Europe','APAC','Emerging Markets','Other'];
+const REGION_GROUP_LABEL = {'Global':'全球 Global','Global ex-Greater China':'全球除大中华 Global ex-Greater China','Greater China':'大中华 Greater China','North America':'北美 North America','Europe':'欧洲 Europe','US & Europe':'欧美 US & Europe','APAC':'亚太 APAC','Emerging Markets':'新兴市场 Emerging Markets','Other':'其他 Other'};
+const REGION_GROUP_FLAGS = {'Global':'🌎','Global ex-Greater China':'🌐','Greater China':'🇨🇳','North America':'🌎','Europe':'🇪🇺','US & Europe':'🌐','APAC':'🌏','Emerging Markets':'🌍','Other':'🏳️'};
 
 function labelOf(dim, v){
   if(dim==='modality') return MODMAP[v] ? MODMAP[v].label : v;
@@ -196,6 +199,7 @@ function labelOf(dim, v){
   if(dim==='stage') return STAGE_LABEL[v] || v;
   if(dim==='dealType') return DTYPE_LABEL[v] || v;
   if(dim==='region') return REGION_LABEL[v] || v;
+  if(dim==='regionGroup') return REGION_GROUP_LABEL[v] || v;
   return v;
 }
 
@@ -206,7 +210,7 @@ const COUNTRY_REGION = {
   'Indonesia':'Emerging Markets','India':'Emerging Markets','Brazil':'Emerging Markets',
   'Global':'Global'
 };
-const COUNTRY_FLAGS = {'United States':'🇺🇸','Canada':'🇨🇦','Germany':'🇩🇪','United Kingdom':'🇬🇧','Switzerland':'🇨🇭','France':'🇫🇷','Japan':'🇯🇵','South Korea':'🇰🇷','Singapore':'🇸🇬','Australia':'🇦🇺','Indonesia':'🇮🇩','India':'🇮🇳','Brazil':'🇧🇷','Europe':'🇪🇺','Southeast Asia':'🌏','Middle East':'🌍','Global':'🌎','Other':'🏳️'};
+const COUNTRY_FLAGS = {'United States':'🇺🇸','Canada':'🇨🇦','Germany':'🇩🇪','United Kingdom':'🇬🇧','Switzerland':'🇨🇭','France':'🇫🇷','Japan':'🇯🇵','South Korea':'🇰🇷','Singapore':'🇸🇬','Australia':'🇦🇺','Indonesia':'🇮🇩','India':'🇮🇳','Brazil':'🇧🇷','Vietnam':'🇻🇳','Turkey':'🇹🇷','Philippines':'🇵🇭','Malaysia':'🇲🇾','Pakistan':'🇵🇰','Thailand':'🇹🇭','Bangladesh':'🇧🇩','Russia':'🇷🇺','Argentina':'🇦🇷','Uruguay':'🇺🇾','Paraguay':'🇵🇾','Saudi Arabia':'🇸🇦','Europe':'🇪🇺','Southeast Asia':'🌏','Middle East':'🌍','Middle East & North Africa':'🌍','Latin America':'🌎','CIS':'🌍','Global':'🌎','Global ex-Greater China':'🌐','Greater China':'🇨🇳','China Mainland':'🇨🇳','US & Canada':'🇺🇸','US & Europe':'🌐','APAC':'🌏','Emerging Markets':'🌍','North America':'🌎','Other':'🏳️'};
 
 const CN_COMPANIES = ['百济神州 BeiGene','信达生物 Innovent','成都先导 HitGen','英矽智能 Insilico','晶泰科技 XtalPi','天演药业 Adagene','绿叶制药 Luye','百奥泰 Bio-Thera','君实生物 Junshi','沃森生物 Walvax','科伦博泰 Kelun-Biotech','荣昌生物 RemeGen','石药集团 CSPC','科济药业 CARsgen','华东医药 Huadong','上海医药 Shanghai Pharma','济民可信 Jemincare','锐格医药 Regor','诺诚健华 InnoCare','海思科 Haisco'];
 const OS_COMPANIES = ['Novartis','Pfizer','Merck KGaA','AstraZeneca','Johnson & Johnson','Roche','Sanofi','Eli Lilly','Gilead','Takeda','Astellas','Daiichi Sankyo','MSD','Bristol Myers Squibb','Boehringer Ingelheim','Amgen','Regeneron','Biogen','Seagen','Samsung Biologics','LG Chem','SK Bioscience','Handok','Etana'];
@@ -232,7 +236,9 @@ function normalizeDeal(d){
     licensor: d.licensor || '', licensee: d.licensee || '',
     asset: d.asset || d.drug_name || '', target: d.target || '',
     modality: d.modality, indication: d.indication, stage: d.stage,
-    dealType: d.deal_type, region: d.region, territory: d.territory || '',
+    dealType: d.deal_type, region: d.region, regionGroup: d.region_group || '',
+    geoTerritory: d.geo_territory || '', geoRegionGroup: d.geo_region_group || '',
+    territory: d.territory || '',
     confidence: d.confidence || 'unknown',
     upfront: d.upfront_musd, total: d.total_value_musd,
     milestone: d.milestone_musd, milestoneDerivable: d.milestone_derivable,
@@ -264,7 +270,7 @@ const DISCLOSURE_LABEL = {upfront:'Upfront disclosed', total:'Total value disclo
 const state = {
   page: 'overview', years: [2020, 2026],
   dealType: new Set(DTYPES), modality: new Set(MODS.map(m=>m.k)),
-  indication: new Set(INDS), stage: new Set(STAGES), region: new Set(REGIONS),
+  indication: new Set(INDS), stage: new Set(STAGES), regionGroup: new Set(REGION_GROUPS),
   disclosure: new Set(DISCLOSURE_VALUES), search: ''
 };
 function disclosureOk(d){
@@ -278,7 +284,7 @@ function filtered(){
   return DEALS.filter(d =>
     d.year >= state.years[0] && d.year <= state.years[1] &&
     state.dealType.has(d.dealType) && state.modality.has(d.modality) &&
-    state.indication.has(d.indication) && state.stage.has(d.stage) && state.region.has(d.region) && disclosureOk(d) &&
+    state.indication.has(d.indication) && state.stage.has(d.stage) && state.regionGroup.has(d.regionGroup) && disclosureOk(d) &&
     (state.search==='' || (d.licensor+d.licensee+d.asset+d.target+d.indication).toLowerCase().includes(state.search.toLowerCase()))
   );
 }
@@ -297,7 +303,7 @@ const FILTER_DEFS = [
   {key:'modality', label:'Modality', color:k=>MODMAP[k]?MODMAP[k].c:'#94a3b8', values:MODS.map(m=>m.k)},
   {key:'indication', label:'Therapeutic Area', color:k=>IND_COLORS[k], values:INDS},
   {key:'stage', label:'Asset Stage', color:k=>STAGE_COLORS[k], values:STAGES},
-  {key:'region', label:'Region', color:k=>REGION_COLORS[k], values:REGIONS},
+  {key:'regionGroup', label:'Region', color:k=>REGION_GROUP_COLORS[k], values:REGION_GROUPS},
   {key:'disclosure', label:'Disclosure', color:k=>'#94a3b8', values:DISCLOSURE_VALUES}
 ];
 
@@ -334,6 +340,7 @@ const PALETTE = ['#2dd4bf','#60a5fa','#c084fc','#fbbf24','#f87171','#34d399','#2
 const DTYPE_COLORS = Object.fromEntries(DTYPES.map((v,i)=>[v,PALETTE[i%PALETTE.length]]));
 const STAGE_COLORS = Object.fromEntries(STAGES.map((v,i)=>[v,PALETTE[i%PALETTE.length]]));
 const REGION_COLORS = Object.fromEntries(REGIONS.map((v,i)=>[v,PALETTE[i%PALETTE.length]]));
+const REGION_GROUP_COLORS = Object.fromEntries(REGION_GROUPS.map((v,i)=>[v,PALETTE[i%PALETTE.length]]));
 const IND_COLORS = Object.fromEntries(INDS.map((v,i)=>[v,PALETTE[i%PALETTE.length]]));
 
 // ===== 图表工具 =====
@@ -349,12 +356,13 @@ function colorOf(dim, v){
   if(dim==='dealType') return DTYPE_COLORS[v]||'#94a3b8';
   if(dim==='stage') return STAGE_COLORS[v]||'#94a3b8';
   if(dim==='region') return REGION_COLORS[v]||'#94a3b8';
+  if(dim==='regionGroup') return REGION_GROUP_COLORS[v]||'#94a3b8';
   if(dim==='indication') return IND_COLORS[v]||'#94a3b8';
   return '#94a3b8';
 }
 function dimValues(dim){
   if(dim==='dealType') return DTYPES; if(dim==='modality') return MODS.map(m=>m.k);
-  if(dim==='indication') return INDS; if(dim==='stage') return STAGES; if(dim==='region') return REGIONS;
+  if(dim==='indication') return INDS; if(dim==='stage') return STAGES; if(dim==='region') return REGIONS; if(dim==='regionGroup') return REGION_GROUPS;
   return [];
 }
 function metricVal(d, metric){
@@ -469,7 +477,7 @@ function stateParams(){
   add('modality', state.modality, MODS.map(m=>m.k));
   add('indication', state.indication, INDS);
   add('stage', state.stage, STAGES);
-  add('region', state.region, REGIONS);
+  add('region_group', state.regionGroup, REGION_GROUPS);
   add('disclosure', state.disclosure, DISCLOSURE_VALUES);
   if(state.search) p.set('q', state.search);
   return p;
@@ -483,7 +491,7 @@ function applyUrlToState(){
   setFrom('modality', state.modality);
   setFrom('indication', state.indication);
   setFrom('stage', state.stage);
-  setFrom('region', state.region);
+  setFrom('region_group', state.regionGroup);
   setFrom('disclosure', state.disclosure);
   if(p.has('q')) state.search = p.get('q');
 }
@@ -536,18 +544,18 @@ function renderGeoCountriesFromServer(elId, geo){
   const el = document.getElementById(elId);
   const max = Math.max(1, ...(geo||[]).map(x=>x.deals||0));
   el.innerHTML = `<div class="footprint">${(geo||[]).map(g=>{
-    const c = REGION_COLORS[g.region]||'#94a3b8';
-    const active = state.region.size===1 && state.region.has(g.region);
-    return `<div class="fp-tile ${active?'active':''}" style="--c:${c}" onclick="state.region=new Set(['${g.region}']);showToast('已按授权区域筛选：${labelOf('region',g.region)}');render();">
+    const c = REGION_GROUP_COLORS[g.region]||'#94a3b8';
+    const active = state.regionGroup.size===1 && state.regionGroup.has(g.region);
+    return `<div class="fp-tile ${active?'active':''}" style="--c:${c}" onclick="state.regionGroup=new Set(['${g.region}']);showToast('已按授权区域筛选：${labelOf('regionGroup',g.region)}');render();">
       <div class="fp-flag">${COUNTRY_FLAGS[g.country]||'🌐'}</div>
       <div class="fp-name">${g.country}</div>
-      <div class="fp-region">${labelOf('region',g.region)}</div>
+      <div class="fp-region">${labelOf('regionGroup',g.region)}</div>
       <div class="fp-n">${g.deals} <span style="font-size:12px;color:var(--muted);font-weight:500">笔</span></div>
       <div class="fp-v">披露总额 ${fmtM(g.value)}</div>
       <div class="fp-bar"><span style="width:${Math.round((g.deals||0)/max*100)}%;background:${c}"></span></div>
     </div>`;
   }).join('')}</div>
-  <div class="hint" style="font-size:11px;margin-top:8px">按授权区域（territory）国家/地区粒度展示，取交易笔数最高的 12 个；点击 → 以区域（region）筛选。</div>`;
+  <div class="hint" style="font-size:11px;margin-top:8px">按授权区域（territory）解析为国家/地区或区域桶，取交易笔数最高的 12 个；点击 → 以上层大区（region group）筛选。</div>`;
 }
 
 async function renderOverview(){
@@ -1374,7 +1382,7 @@ function wireFilterbar(){
 function resetFilters(){
   state.years=[2020,2026];
   state.dealType=new Set(DTYPES); state.modality=new Set(MODS.map(m=>m.k));
-  state.indication=new Set(INDS); state.stage=new Set(STAGES); state.region=new Set(REGIONS); state.disclosure=new Set(DISCLOSURE_VALUES); state.search='';
+  state.indication=new Set(INDS); state.stage=new Set(STAGES); state.regionGroup=new Set(REGION_GROUPS); state.disclosure=new Set(DISCLOSURE_VALUES); state.search='';
 }
 document.addEventListener('click', ()=>{ document.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('open')); });
 document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeDeal(); });
