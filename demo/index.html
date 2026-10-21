@@ -1247,7 +1247,10 @@ async function renderMain(){
   if(state.page==='overview'){ await renderOverview(); return; }
   if(state.page==='landscape'){ await renderLandscape(); return; }
   if(state.page==='economics'){ await renderEconomics(); return; }
-  const deals=filtered();
+  // 其余页面：从服务端按当前筛选拉取过滤后的交易，再做页面内聚合
+  const q = stateParams().toString();
+  const resp = await fetch('/api/deals?'+q).then(r=>r.json());
+  const deals = (resp.deals||[]).map(normalizeDeal);
   const pages={pipeline:renderPipeline, therapy:renderTherapy, companies:renderCompanies, explorer:renderExplorer};
   (pages[state.page]||renderPipeline)(deals);
 }
