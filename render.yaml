@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: china-biopharma-outlicensing
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/meta
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
