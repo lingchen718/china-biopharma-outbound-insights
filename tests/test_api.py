@@ -2,7 +2,7 @@
 """聚合接口的单元测试（依赖已落库的本地数据）。"""
 import unittest
 from api.server import ensure_db, ep_overview_kpis, ep_landscape, ep_economics_trends, \
-    ep_economics_distribution, ep_pipeline_aggregates, ep_therapy_opportunity, ep_geo, ep_meta
+    ep_economics_distribution, ep_pipeline_aggregates, ep_therapy_opportunity, ep_geo, ep_meta, ep_deals
 
 ensure_db()
 
@@ -43,6 +43,11 @@ class TestAggregates(unittest.TestCase):
     def test_geo_top8(self):
         d = ep_geo({})
         self.assertLessEqual(len(d), 8)
+
+    def test_deals_returns_id_and_total(self):
+        d = ep_deals({"limit": ["1"]})
+        self.assertTrue(d["deals"][0]["id"])
+        self.assertIn("total", d)
 
     def test_meta_enums(self):
         d = ep_meta()

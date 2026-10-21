@@ -27,11 +27,12 @@ CREATE INDEX IF NOT EXISTS idx_deals_deal_type ON deals(deal_type);
 CREATE INDEX IF NOT EXISTS idx_deals_region ON deals(region);
 """
 
-COLS = ["deal_id","date","year","licensor","licensee","asset","target","modality",
+COLS = ["id","date","year","licensor","licensee","asset","target","modality",
         "indication","stage","deal_type","region","territory","confidence","currency",
         "fx_rate","upfront","total_value","upfront_musd","total_value_musd",
         "milestone_musd","milestone_derivable","has_upfront","has_total",
         "value_disclosure","source_name","source_title","source_url","publish_date","analyst_note"]
+DB_COLS = ["deal_id"] + COLS[1:]
 
 def ensure_db(path=DB_PATH):
     with sqlite3.connect(path) as conn:
@@ -41,7 +42,7 @@ def ensure_db(path=DB_PATH):
         rows = [tuple(d.get(c) for c in COLS) for d in data["deals"]]
         conn.execute("DELETE FROM deals")
         conn.executemany(
-            f"INSERT OR REPLACE INTO deals ({','.join(COLS)}) VALUES ({','.join('?'*len(COLS))})",
+            f"INSERT OR REPLACE INTO deals ({','.join(DB_COLS)}) VALUES ({','.join('?'*len(COLS))})",
             rows)
         n = len(rows)
     return n

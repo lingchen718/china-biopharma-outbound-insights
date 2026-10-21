@@ -57,9 +57,9 @@ python3 api/server.py
 # 单元测试（ETL + 聚合接口，无需第三方依赖）
 python3 -m unittest discover -s tests -v
 
-# 浏览器端 E2E（需先安装 Playwright）
-# npm i -D @playwright/test && npx playwright install chromium
-# npx playwright test tests/e2e_playwright.spec.js
+# 浏览器端 E2E（Playwright + pytest）
+# pip install playwright pytest && playwright install chromium
+# python3 -m pytest tests/test_e2e.py -v
 ```
 
 ## 数据口径（要点）
