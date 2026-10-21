@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 """ETL 规范化逻辑的单元测试（无需数据库）。"""
+import importlib
+import os
+import tempfile
 import unittest
+from unittest import mock
+
+from etl import build_dataset
 from etl.build_dataset import norm, fnum, MODALITY, INDICATION, STAGE, DEAL_TYPE, REGION
 
 class TestNorm(unittest.TestCase):
@@ -30,6 +36,21 @@ class TestNorm(unittest.TestCase):
         seen = {'modality': set()}
         norm('modality', MODALITY, '不存在的值 XYZ', seen)
         self.assertIn('不存在的值 XYZ', seen['modality'])
+
+class TestBuildDatasetPaths(unittest.TestCase):
+    def test_base_defaults_to_repo_normalized_data(self):
+        self.assertTrue(build_dataset.BASE.endswith("normalized_data"))
+        self.assertTrue(os.path.isdir(build_dataset.BASE))
+        for y in build_dataset.YEARS:
+            self.assertTrue(os.path.isfile(os.path.join(build_dataset.BASE, f"cleaned_data_{y}.csv")))
+
+    def test_base_env_override(self):
+        tmp = tempfile.mkdtemp(prefix="etl-data-")
+        with mock.patch.dict(os.environ, {"ETL_DATA_DIR": tmp}, clear=False):
+            importlib.reload(build_dataset)
+            self.assertEqual(build_dataset.BASE, tmp)
+        importlib.reload(build_dataset)  # 恢复默认路径
+
 
 class TestFnum(unittest.TestCase):
     def test_parse(self):

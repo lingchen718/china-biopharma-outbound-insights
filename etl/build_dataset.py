@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-"""读取 2021–2026 清洗后 CSV，规范化并输出统一数据集与质量报告。"""
+"""读取 2020–2026 清洗后 CSV，规范化并输出统一数据集与质量报告。"""
 import csv, json, os, collections, math, datetime
 
-BASE = "/Users/lingchen/Documents/ChatGPT/中国生物医药出海数据清洗/normalized"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = os.environ.get("ETL_DATA_DIR", os.path.join(ROOT, "normalized_data"))
 YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
-OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+OUT_DIR = os.path.join(ROOT, "data")
 
 # ---------- 规范化映射（源值 -> 英文规范键） ----------
 MODALITY = {

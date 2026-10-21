@@ -24,6 +24,9 @@ jobs:
           python -m pip install pytest playwright
           python -m playwright install chromium --with-deps
 
+      - name: Build dataset (ETL)
+        run: python etl/build_dataset.py
+
       - name: Seed data snapshot
         run: python db/seed.py
 
