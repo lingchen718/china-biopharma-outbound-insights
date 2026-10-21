@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """读取 2020–2026 清洗后 CSV，规范化并输出统一数据集与质量报告。"""
-import csv, json, os, collections, math, datetime
+import csv, hashlib, json, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE = os.environ.get("ETL_DATA_DIR", os.path.join(ROOT, "normalized_data"))
@@ -92,6 +92,15 @@ def fnum(s):
         return round(float(s), 2)
     except ValueError:
         return None
+
+def _source_fingerprint():
+    """按输入 CSV 内容计算确定性指纹（不依赖日期/环境，保证可复现）。"""
+    h = hashlib.sha256()
+    for y in YEARS:
+        with open(os.path.join(BASE, f"cleaned_data_{y}.csv"), "rb") as f:
+            h.update(f.read())
+        h.update(b"\x00")
+    return h.hexdigest()[:12]
 
 def main():
     deals = []
@@ -190,7 +199,7 @@ def main():
         "deal_type": sorted({d["deal_type"] for d in deals}),
         "region": sorted({d["region"] for d in deals}),
         "confidence": sorted({d["confidence"] for d in deals}),
-        "generated": str(datetime.date.today()),
+        "data_fingerprint": _source_fingerprint(),
     }
 
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -204,7 +213,7 @@ def main():
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
     # 质量报告
-    lines = ["# 数据质量报告（ETL 自动生成）", "", f"- 生成时间：{meta['generated']}", f"- 总记录：{meta['total_rows']}", f"- 唯一 deal_id：{meta['unique_deal_ids']}", ""]
+    lines = ["# 数据质量报告（ETL 自动生成）", "", f"- 数据指纹：{meta['data_fingerprint']}", f"- 总记录：{meta['total_rows']}", f"- 唯一 deal_id：{meta['unique_deal_ids']}", ""]
     lines.append("## 按年统计")
     lines.append("| 年份 | 原始行数 | 已披露首付款 | 已披露总额 | 空阶段 | 空置信度 | 多值字段 |")
     lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: |")

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ETL 规范化逻辑的单元测试（无需数据库）。"""
 import importlib
+import json
 import os
 import tempfile
 import unittest
@@ -50,6 +51,19 @@ class TestBuildDatasetPaths(unittest.TestCase):
             importlib.reload(build_dataset)
             self.assertEqual(build_dataset.BASE, tmp)
         importlib.reload(build_dataset)  # 恢复默认路径
+
+
+class TestBuildDatasetReproducibility(unittest.TestCase):
+    def test_source_fingerprint_stable(self):
+        f1 = build_dataset._source_fingerprint()
+        f2 = build_dataset._source_fingerprint()
+        self.assertEqual(f1, f2)
+        self.assertEqual(len(f1), 12)
+
+    def test_snapshot_matches_source_fingerprint(self):
+        with open(os.path.join(build_dataset.OUT_DIR, "deals.json"), encoding="utf-8") as f:
+            meta = json.load(f)["meta"]
+        self.assertEqual(meta["data_fingerprint"], build_dataset._source_fingerprint())
 
 
 class TestFnum(unittest.TestCase):

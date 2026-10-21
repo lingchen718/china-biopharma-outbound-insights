@@ -27,6 +27,9 @@ jobs:
       - name: Build dataset (ETL)
         run: python etl/build_dataset.py
 
+      - name: Verify snapshot reproducibility
+        run: git diff --exit-code -- data/deals.json data/quality_report.md demo/data/deals.json
+
       - name: Seed data snapshot
         run: python db/seed.py
 
