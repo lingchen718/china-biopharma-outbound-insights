@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8090:8090"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8090
+    # 说明：本地数据库在容器启动时由 data/deals.json 自动重建，不持久化。
+    # 如需持久化，可挂载卷：- ./data:/app/data

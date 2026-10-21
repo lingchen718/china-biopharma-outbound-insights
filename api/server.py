@@ -8,7 +8,8 @@ from urllib.parse import urlparse, parse_qs
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(ROOT, "db", "app.db")
 DEMO_DIR = os.path.join(ROOT, "demo")
-PORT = 8090
+PORT = int(os.environ.get("PORT", "8090"))
+HOST = os.environ.get("HOST", "127.0.0.1")
 
 def ensure_db():
     if not os.path.exists(DB_PATH):
@@ -60,6 +61,14 @@ def filter_clause(qs):
         like = "%" + qs["q"][0] + "%"
         where.append("(licensor LIKE ? OR licensee LIKE ? OR asset LIKE ? OR target LIKE ? OR indication LIKE ?)")
         args += [like]*5
+    if "disclosure" in qs:
+        conds = []
+        for v in [x for x in qs["disclosure"][0].split(",") if x]:
+            if v == "upfront": conds.append("has_upfront=1")
+            elif v == "total": conds.append("has_total=1")
+            elif v == "undisclosed": conds.append("(has_upfront=0 AND has_total=0)")
+        if conds:
+            where.append("(" + " OR ".join(conds) + ")")
     return (" WHERE " + " AND ".join(where) if where else "", args)
 
 # ---------- 页面聚合 ----------
@@ -415,5 +424,5 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     ensure_db()
-    print(f"Serving on http://127.0.0.1:{PORT}/  (静态 demo + /api/*)")
-    ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    print(f"Serving on http://{HOST}:{PORT}/  (静态 demo + /api/*)")
+    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()

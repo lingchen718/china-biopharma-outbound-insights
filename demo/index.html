@@ -250,21 +250,32 @@ async function boot(){
     console.warn('真实数据加载失败，使用空数据兜底:', e);
     DEALS = [];
   }
+  applyUrlToState();
   render();
 }
 boot();
 
 // ===== 全局状态 =====
+const DISCLOSURE_VALUES = ['upfront','total','undisclosed'];
+const DISCLOSURE_LABEL = {upfront:'Upfront disclosed', total:'Total value disclosed', undisclosed:'Undisclosed'};
 const state = {
   page: 'overview', years: [2020, 2026],
   dealType: new Set(DTYPES), modality: new Set(MODS.map(m=>m.k)),
-  indication: new Set(INDS), stage: new Set(STAGES), region: new Set(REGIONS), search: ''
+  indication: new Set(INDS), stage: new Set(STAGES), region: new Set(REGIONS),
+  disclosure: new Set(DISCLOSURE_VALUES), search: ''
 };
+function disclosureOk(d){
+  if(state.disclosure.size===DISCLOSURE_VALUES.length) return true;
+  if(state.disclosure.has('upfront') && d.hasUpfront) return true;
+  if(state.disclosure.has('total') && d.hasTotal) return true;
+  if(state.disclosure.has('undisclosed') && !d.hasUpfront && !d.hasTotal) return true;
+  return false;
+}
 function filtered(){
   return DEALS.filter(d =>
     d.year >= state.years[0] && d.year <= state.years[1] &&
     state.dealType.has(d.dealType) && state.modality.has(d.modality) &&
-    state.indication.has(d.indication) && state.stage.has(d.stage) && state.region.has(d.region) &&
+    state.indication.has(d.indication) && state.stage.has(d.stage) && state.region.has(d.region) && disclosureOk(d) &&
     (state.search==='' || (d.licensor+d.licensee+d.asset+d.target+d.indication).toLowerCase().includes(state.search.toLowerCase()))
   );
 }
@@ -283,7 +294,8 @@ const FILTER_DEFS = [
   {key:'modality', label:'Modality', color:k=>MODMAP[k]?MODMAP[k].c:'#94a3b8', values:MODS.map(m=>m.k)},
   {key:'indication', label:'Therapeutic Area', color:k=>IND_COLORS[k], values:INDS},
   {key:'stage', label:'Asset Stage', color:k=>STAGE_COLORS[k], values:STAGES},
-  {key:'region', label:'Region', color:k=>REGION_COLORS[k], values:REGIONS}
+  {key:'region', label:'Region', color:k=>REGION_COLORS[k], values:REGIONS},
+  {key:'disclosure', label:'Disclosure', color:k=>'#94a3b8', values:DISCLOSURE_VALUES}
 ];
 
 function buildNav(){
@@ -299,7 +311,7 @@ function buildFilterbar(){
     const n = state[f.key].size===f.values.length?'All':state[f.key].size+' selected';
     html += `<div class="fgroup"><label>${f.label}</label>
       <button class="dd-btn" data-dd="${f.key}">${f.label} <span class="n">${n}</span> ▾</button>
-      <div class="dd-menu" data-menu="${f.key}">${f.values.map(v=>`<label><input type="checkbox" data-fk="${f.key}" data-fv="${v}" ${state[f.key].has(v)?'checked':''}> <span class="dot" style="background:${f.color(v)}"></span>${v}</label>`).join('')}</div></div>`;
+      <div class="dd-menu" data-menu="${f.key}">${f.values.map(v=>`<label><input type="checkbox" data-fk="${f.key}" data-fv="${v}" ${state[f.key].has(v)?'checked':''}> <span class="dot" style="background:${f.color(v)}"></span>${f.key==='disclosure'?(DISCLOSURE_LABEL[v]||v):v}</label>`).join('')}</div></div>`;
   }
   html += `<button class="f-reset" id="freset">Reset</button>`;
   document.getElementById('filterbar').innerHTML = html;
@@ -455,9 +467,28 @@ function stateParams(){
   add('indication', state.indication, INDS);
   add('stage', state.stage, STAGES);
   add('region', state.region, REGIONS);
+  add('disclosure', state.disclosure, DISCLOSURE_VALUES);
   if(state.search) p.set('q', state.search);
   return p;
 }
+function applyUrlToState(){
+  const p = new URLSearchParams(location.search);
+  if(p.has('year_from')) state.years[0] = +p.get('year_from');
+  if(p.has('year_to')) state.years[1] = +p.get('year_to');
+  const setFrom = (key, set) => { if(p.has(key)){ set.clear(); p.get(key).split(',').filter(Boolean).forEach(v=>set.add(v)); } };
+  setFrom('deal_type', state.dealType);
+  setFrom('modality', state.modality);
+  setFrom('indication', state.indication);
+  setFrom('stage', state.stage);
+  setFrom('region', state.region);
+  setFrom('disclosure', state.disclosure);
+  if(p.has('q')) state.search = p.get('q');
+}
+function syncUrl(){
+  const q = stateParams().toString();
+  history.replaceState(null, '', location.pathname + (q ? '?'+q : ''));
+}
+
 function kpiHtmlFromServer(k){
   const items = [
     ['交易笔数 Total Deals', fmtInt(k.total_deals||0), 'Deals'],
@@ -1105,7 +1136,7 @@ function renderExplorer(deals){
     <div id="ex-table">${dealTableHtml(deals.slice(0,150))}</div>
   </div>`;
   document.getElementById('ex-search').oninput = e=>{
-    state.search=e.target.value; const d=filtered();
+    state.search=e.target.value; syncUrl(); const d=filtered();
     document.getElementById('ex-count').textContent='共 '+d.length+' 笔';
     document.getElementById('ex-table').innerHTML=dealTableHtml(d.slice(0,150));
   };
@@ -1249,7 +1280,7 @@ function syncFilterbar(){
   document.querySelectorAll('[data-fk]').forEach(cb=>{ const k=cb.dataset.fk, v=cb.dataset.fv; cb.checked=state[k].has(v); });
   document.getElementById('fy0').value=state.years[0]; document.getElementById('fy1').value=state.years[1];
 }
-function render(){ buildNav(); buildFilterbar(); wireNav(); wireFilterbar(); renderMain(); }
+function render(){ buildNav(); buildFilterbar(); wireNav(); wireFilterbar(); renderMain(); syncUrl(); }
 function refresh(){ syncNav(); syncFilterbar(); renderMain(); }
 
 function wireNav(){
@@ -1267,7 +1298,7 @@ function wireFilterbar(){
 function resetFilters(){
   state.years=[2020,2026];
   state.dealType=new Set(DTYPES); state.modality=new Set(MODS.map(m=>m.k));
-  state.indication=new Set(INDS); state.stage=new Set(STAGES); state.region=new Set(REGIONS); state.search='';
+  state.indication=new Set(INDS); state.stage=new Set(STAGES); state.region=new Set(REGIONS); state.disclosure=new Set(DISCLOSURE_VALUES); state.search='';
 }
 document.addEventListener('click', ()=>{ document.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('open')); });
 document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeDeal(); });
