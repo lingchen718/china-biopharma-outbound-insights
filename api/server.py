@@ -10,6 +10,7 @@ DB_PATH = os.path.join(ROOT, "db", "app.db")
 DEMO_DIR = os.path.join(ROOT, "demo")
 PORT = int(os.environ.get("PORT", "8090"))
 HOST = os.environ.get("HOST", "127.0.0.1")
+EXPORT_PASSWORD = os.environ.get("EXPORT_PASSWORD", "")
 MAX_PAGE_SIZE = 1000
 CACHE_TTL = 30
 _CACHE = {}
@@ -26,6 +27,12 @@ def cached(key, fn):
             if _CACHE[k][0] <= now:
                 _CACHE.pop(k, None)
     return val
+
+def _export_allowed(headers):
+    """下载导出需访问密码；未设置 EXPORT_PASSWORD 时保持开放（本地开发）。"""
+    if not EXPORT_PASSWORD:
+        return True
+    return headers.get("X-Export-Password") == EXPORT_PASSWORD
 
 def ensure_db():
     if not os.path.exists(DB_PATH):
@@ -531,6 +538,8 @@ class Handler(BaseHTTPRequestHandler):
             try: return self._json(cached(key, lambda: ep_landscape(qs, dim)))
             except Exception as e: return self._json({"error": str(e)}, 500)
         if p.path == "/api/deals/export":
+            if not _export_allowed(self.headers):
+                return self._json({"error": "unauthorized"}, 401)
             try:
                 body = ep_deals_csv(qs).encode("utf-8")
                 self.send_response(200)

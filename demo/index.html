@@ -1284,6 +1284,46 @@ async function refreshExplorerTable(){
   document.getElementById('ex-pageinfo').textContent = '第 ' + (exPage+1) + ' / ' + totalPages + ' 页';
 }
 
+function exportPassword(){ try{ return localStorage.getItem('biopharma_export_pwd') || ''; }catch(e){ return ''; } }
+function setExportPassword(v){ try{ localStorage.setItem('biopharma_export_pwd', v); }catch(e){} }
+function clearExportPassword(){ try{ localStorage.removeItem('biopharma_export_pwd'); }catch(e){} }
+
+async function downloadExportCsv(){
+  const pwd = exportPassword();
+  const res = await fetch('/api/deals/export?' + stateParams().toString(), { headers: pwd ? {'X-Export-Password': pwd} : {} });
+  if(res.status === 401){ clearExportPassword(); const lg=document.getElementById('ex-logout'); if(lg) lg.style.display='none'; openExportLogin('密码不正确，请重新输入'); return; }
+  if(!res.ok){ showToast('导出失败 HTTP ' + res.status); return; }
+  const blob = await res.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'deals_export.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+  const lg=document.getElementById('ex-logout'); if(lg) lg.style.display='inline';
+  showToast('已开始下载 CSV');
+}
+
+function openExportLogin(err){
+  document.getElementById('modal').innerHTML = `<button class="x" onclick="closeDeal()">✕</button>
+    <h3 style="margin:0 0 4px">登录后下载 Login to Export</h3>
+    <p class="hint" style="margin:0 0 12px">浏览公开，下载需访问密码</p>
+    <div id="login-err" style="color:#f87171;font-size:12.5px;margin-bottom:10px">${err||''}</div>
+    <input id="login-pwd" type="password" class="dd-btn" style="width:100%;padding:9px 12px" placeholder="访问密码 Access password" autocomplete="off">
+    <div style="margin-top:14px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="dd-btn" onclick="closeDeal()">取消 Cancel</button>
+      <button class="dd-btn" style="background:var(--accent);color:#1c1700;border-color:var(--accent);font-weight:600" onclick="submitExportLogin()">登录并下载 Login & Download</button>
+    </div>`;
+  document.getElementById('modalOverlay').classList.add('open');
+  const inp = document.getElementById('login-pwd'); inp.focus();
+  inp.onkeydown = e=>{ if(e.key==='Enter') submitExportLogin(); };
+}
+
+function submitExportLogin(){
+  const v = document.getElementById('login-pwd').value.trim();
+  if(!v){ document.getElementById('login-err').textContent = '请输入密码'; return; }
+  setExportPassword(v); closeDeal(); downloadExportCsv();
+}
+
 async function renderExplorer(){
   const data = await fetchExplorerPage();
   const total = data.total || 0;
@@ -1302,6 +1342,7 @@ async function renderExplorer(){
       <div class="fgroup"><label>签署日期 Date</label><div style="display:flex;gap:6px;align-items:center"><input id="ex-datefrom" type="date" class="dd-btn" value="${esc(state.dateFrom)}"><span style="color:var(--muted)">—</span><input id="ex-dateto" type="date" class="dd-btn" value="${esc(state.dateTo)}"></div></div>
       <div class="fgroup"><label>里程碑 Milestone</label><select id="ex-milestone" class="dd-btn"><option value="all" ${state.milestone==='all'?'selected':''}>全部 All</option><option value="derivable" ${state.milestone==='derivable'?'selected':''}>可派生 Derivable</option><option value="not_derivable" ${state.milestone==='not_derivable'?'selected':''}>不可派生 Not Derivable</option></select></div>
       <button class="dd-btn" id="ex-export" style="margin-left:auto">导出 CSV Export CSV</button>
+      <a id="ex-logout" style="display:none;cursor:pointer;color:var(--muted);font-size:12px;align-self:center" onclick="clearExportPassword();this.style.display='none';showToast('已清除访问密码')">清除登录</a>
     </div>
     <div id="ex-table">${dealTableHtml(rows.map(normalizeDeal))}</div>
     <div style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:flex-end">
@@ -1329,9 +1370,8 @@ async function renderExplorer(){
   document.getElementById('ex-milestone').onchange = e=>{
     state.milestone = e.target.value; syncUrl(); exPage = 0; refreshExplorerTable();
   };
-  document.getElementById('ex-export').onclick = ()=>{
-    window.location.href = '/api/deals/export?' + stateParams().toString();
-  };
+  document.getElementById('ex-export').onclick = ()=> downloadExportCsv();
+  const _lg = document.getElementById('ex-logout'); if(_lg) _lg.style.display = exportPassword() ? 'inline' : 'none';
   document.getElementById('ex-prev').onclick = ()=>{ exPage = Math.max(0, exPage-1); renderMain(); };
   document.getElementById('ex-next').onclick = ()=>{ exPage++; renderMain(); };
 }

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """聚合接口的单元测试（依赖已落库的本地数据）。"""
 import unittest
+import api.server as server
 from api.server import ensure_db, ep_overview_kpis, ep_landscape, ep_economics_trends, \
     ep_economics_distribution, ep_pipeline_aggregates, ep_therapy_opportunity, ep_geo, ep_meta, ep_deals
 
@@ -53,6 +54,20 @@ class TestAggregates(unittest.TestCase):
         d = ep_meta()
         self.assertIn('modality', d['enums'])
         self.assertIn('region', d['enums'])
+
+class TestExportAllowed(unittest.TestCase):
+    def test_export_allowed(self):
+        orig = server.EXPORT_PASSWORD
+        try:
+            server.EXPORT_PASSWORD = "secret123"
+            self.assertTrue(server._export_allowed({"X-Export-Password": "secret123"}))
+            self.assertFalse(server._export_allowed({"X-Export-Password": "wrong"}))
+            self.assertFalse(server._export_allowed({}))
+            server.EXPORT_PASSWORD = ""
+            self.assertTrue(server._export_allowed({}))
+        finally:
+            server.EXPORT_PASSWORD = orig
+
 
 if __name__ == '__main__':
     unittest.main()
