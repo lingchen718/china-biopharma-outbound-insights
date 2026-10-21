@@ -311,9 +311,8 @@ function buildFilterbar(){
     <span style="color:var(--muted)">—</span>
     <select class="dd-btn" id="fy1">${years.map(y=>`<option ${y===state.years[1]?'selected':''}>${y}</option>`).join('')}</select></div>`;
   for(const f of FILTER_DEFS){
-    const n = state[f.key].size===f.values.length?'All':state[f.key].size+' selected';
     html += `<div class="fgroup"><label>${f.label}</label>
-      <button class="dd-btn" data-dd="${f.key}">${f.label} <span class="n">${n}</span> ▾</button>
+      <button class="dd-btn" data-dd="${f.key}">${f.label} ▾</button>
       <div class="dd-menu" data-menu="${f.key}">${f.values.map(v=>`<label><input type="checkbox" data-fk="${f.key}" data-fv="${v}" ${state[f.key].has(v)?'checked':''}> <span class="dot" style="background:${f.color(v)}"></span>${f.key==='disclosure'?(DISCLOSURE_LABEL[v]||v):v}</label>`).join('')}</div></div>`;
   }
   html += `<button class="f-reset" id="freset">Reset</button><button class="f-reset" id="fquality">数据质量 Data Quality</button>`;
@@ -639,7 +638,7 @@ async function renderLandscape(){
   ];
   main.innerHTML = title('交易格局 Deal Landscape', PAGE_EN.landscape) +
     `<div class="grid g2">${dims.map((d,i)=>`
-      <div class="card"><h3><span class="zh">${d.t.split(' ')[0]}</span> <span class="en">${d.t.split(' ').slice(1).join(' ')}</span></h3><p class="hint">${d.q}</p>
+      <div class="card"><h3><span class="zh">${d.t.split(' ')[0]}</span> <span class="en">${d.t.split(' ').slice(1).join(' ')}</span></h3><p class="hint" style="min-height:46px">${d.q}</p>
         <div class="duo">
           <div><div id="ls-count-${i}" class="chart ch-sm"></div><div class="cap">Counts of Deals</div></div>
           <div><div id="ls-up-${i}" class="chart ch-sm"></div><div class="cap">Sum of Upfront Payments (US$)</div></div>
@@ -1352,7 +1351,7 @@ async function renderMain(){
 }
 function syncNav(){ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.page===state.page)); }
 function syncFilterbar(){
-  document.querySelectorAll('[data-dd]').forEach(btn=>{ const k=btn.dataset.dd; const def=FILTER_DEFS.find(f=>f.key===k); const n=state[k].size===def.values.length?'全部':state[k].size+' 项'; btn.innerHTML=`${def.label} <span class="n">${n}</span> ▾`; });
+  document.querySelectorAll('[data-dd]').forEach(btn=>{ const def=FILTER_DEFS.find(f=>f.key===btn.dataset.dd); btn.innerHTML=def.label+' ▾'; });
   document.querySelectorAll('[data-fk]').forEach(cb=>{ const k=cb.dataset.fk, v=cb.dataset.fv; cb.checked=state[k].has(v); });
   document.getElementById('fy0').value=state.years[0]; document.getElementById('fy1').value=state.years[1];
 }
