@@ -1207,6 +1207,7 @@ function renderCompanies(deals){
   main.innerHTML = title('交易参与方 Companies', PAGE_EN.companies) +
   `<div class="card" style="margin-top:14px"><h3><span class="zh">对手方关系情报</span> <span class="en">Partner Relationship Intelligence</span></h3>
     <p class="hint">首次合作=某中国授权方与某海外引进方之间首次达成独立交易；复购=同一对授权方—被授权方再次达成独立交易（非同一药物重复授权）。指标仅呈现事实，不直接等同于合作质量或信任提升。First-time = the first independent deal between a licensor–licensee pair; repeat = a subsequent independent deal between the same pair. Metrics reflect facts only, not necessarily improved partnership quality.</p>
+    <p class="hint">【重复合作交易占比】回答：近期的授权交易活动，多大程度上来自既有合作关系？【重复合作关系占比】回答：合作网络中，有多少组伙伴已经形成重复交易关系？Repeat Deal Share answers: to what extent recent licensing-out activity comes from existing partnerships? Repeat Relationship Share answers: how many licensor–licensee pairs in the network have formed repeat transaction relationships?</p>
     <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
       <div class="kpi" style="--k:#60a5fa"><div class="label">首次合作交易占比 First-time Deal Share</div><div class="value">${rel.firstShare.toFixed(1)}%</div><div class="sub">${rel.firstN} / ${rel.total} deals</div></div>
       <div class="kpi" style="--k:#facc15"><div class="label">重复合作交易占比 Repeat Deal Share</div><div class="value">${rel.repeatDealShare.toFixed(1)}%</div><div class="sub">${rel.repeatN} / ${rel.total} deals</div></div>
