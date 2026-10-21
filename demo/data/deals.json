@@ -9,8 +9,8 @@
       2025,
       2026
     ],
-    "total_rows": 571,
-    "unique_deal_ids": 571,
+    "total_rows": 569,
+    "unique_deal_ids": 569,
     "modality": [
       "ADC",
       "Bispecific",
@@ -80,7 +80,7 @@
       "medium",
       "unknown"
     ],
-    "data_fingerprint": "4d96f29b8dc8"
+    "data_fingerprint": "383143a98f45"
   },
   "deals": [
     {
@@ -4884,38 +4884,6 @@
       "analyst_note": "交易方向：中国方(和黄医药)为授予方/licensor，符合纳入方向。announce_date=2023-01-23(和黄医药与武田同日公告，武田官网亦为2023-01-23)；交易于2023-03-14完成交割(closing)，首付款4亿美元于2023年4月收到，交割公告日2023-03-14记入本note。金额口径：首付款400 M USD + 里程碑上限730 M USD = 总额上限1,130 M USD(11.3亿美元)，另加基于净销售额的特许权使用费(royalty rate未披露具体数字，公告仅写royalties on net sales)。适应症：所有适应症(all indications)，具体为经治转移性结直肠癌(CRC)为核心，另含其他实体瘤；stage按签约时该资产在授权区域(中国以外)的状态——呋喹替尼已于2018年在中国获批上市，签约时美国NDA滚动提交中、欧洲/日本上市申请计划2023年完成，故stage=已上市(中国已上市，海外处于注册申报阶段)。target=VEGFR-1/2/3(公告原文：highly selective and potent inhibitor of vascular endothelial growth factor receptors (VEGFR)-1, 2 and 3)。和黄医药保留中国内地、香港、澳门权益。信源：和黄医药官网新闻稿(tier1)；武田官网新闻稿 https://www.takeda.com/newsroom/newsreleases/2023/takeda-to-acquire-exclusive-worldwide-ex-china-license-of-hutchmeds-fruquintinib-a-highly-selective-oral-vegfr123-tyrosine-kinase-inhibitor/ (tier1)；港交所/20-F亦有记载。"
     },
     {
-      "id": "2023-PhaseB-JiXing-71e9c04c",
-      "date": "2023-02-06",
-      "year": 2023,
-      "licensor": "PhaseBio Pharmaceuticals, Inc.",
-      "licensee": "箕星药业 Ji Xing Pharmaceuticals (CORXEL)",
-      "asset": "PB6440 (JX09)",
-      "target": "Aldosterone synthase (CYP11B2)",
-      "modality": "Small molecule",
-      "indication": "CV",
-      "stage": "Preclinical",
-      "deal_type": "Asset transfer",
-      "region": "Global",
-      "territory": "全球 Global",
-      "confidence": "high",
-      "currency": null,
-      "fx_rate": null,
-      "upfront": null,
-      "total_value": null,
-      "upfront_musd": null,
-      "total_value_musd": null,
-      "milestone_musd": null,
-      "milestone_derivable": false,
-      "has_upfront": false,
-      "has_total": false,
-      "value_disclosure": "未披露或不适用 Undisclosed / N/A",
-      "source_name": "PR Newswire Asia",
-      "source_title": "箕星宣布一项心血管创新产品的全球收购",
-      "source_url": "https://www.prnasia.com/story/392140-1.shtml",
-      "publish_date": "2023-02-06",
-      "analyst_note": "交易方向：境外方(PhaseBio, 美国)向中国方(箕星)转让资产，中国方为受让方/收购方；资产转让属双向均可的交易类型，故纳入。箕星通过资产购买获得PB6440(后命名JX09)的全球权益，为新一代高选择性醛固酮合成酶抑制剂，针对高血压等心血管领域。公告未披露任何财务条款(首付款/里程碑/分成均未披露)，故value_disclosure填未披露。target依据公告原文药理描述(醛固酮合成酶抑制剂)填写。stage为临床前(公告载明处于临床前阶段)。同一资产JX09于2024-01-11由箕星授权日本权益给TMS Co., Ltd.(日本)，属2024年交易，不在本年度范围。来源：美通社PR Newswire Asia(2023-02-06 09:30)为官方稿分发；另见医药魔方、新浪财经、钛媒体等转载。"
-    },
-    {
       "id": "2023-Harbou-Mythic-7d041004",
       "date": "2023-02-10",
       "year": 2023,
@@ -5426,38 +5394,6 @@
       "source_url": "https://www.prnewswire.com/news-releases/bliss-biopharmaceutical-enters-into-a-clinical-trial-collaboration-agreement-with-an-option-of-strategic-collaboration-with-eisai-for-bb-1701-301817761.html",
       "publish_date": "2023-05-07",
       "analyst_note": "期权框架交易：2023-04-28 双方签订临床试验合作开发协议（含战略合作选择权），2023-05-08 卫材（中国）官网发布中文公告、BlissBio 经 PR Newswire 发布英文稿（美东 2023-05-07 19:00 = 北京时间 2023-05-08）。deal_type 按 §7b ③ 判为期权协议；共同开发部分见备注。territory = 全球除大中华区（中国大陆、中国香港、中国澳门、中国台湾）。金额口径：公告仅披露『如卫材行使选择权，将支付一笔额外预付款以及开发/监管/销售里程碑，若全部实现总额高达 20 亿美元』，未拆分首付款，故 upfront 留空、total_value=2000（里程碑上限口径）、value_disclosure=仅披露总额或里程碑。特许使用费未披露（公告仅写『一定数额的特许权使用费』）。stage：BB-1701 签约时正在美国与中国进行 I/II 期临床（公告原文 Phase I/II studies in the US and China），本笔授权区域为全球除大中华区，按该区域阶段填 II期 Phase II。适应症具体癌种：乳腺癌、非小细胞肺癌及其他 HER2 表达实体瘤。靶点 HER2（公告原文 Human Epidermal Growth Factor Receptor 2）。modality：抗 HER2 抗体 + 艾立布林（eribulin）毒素载荷偶联物 → ADC。后续事件（写入备注，不影响本笔字段）：2025-05 双方订立逐步终止合作协议，卫材决定不行使战略合作选择权，BB-1701 全球开发及商业化权益回归百力司康。信源：卫材（中国）官网 https://www.eisai.com.cn/2023/05/08/... （一手，tier 1）；卫材全球官网 https://www.eisai.com/news/2023/news202330.html（403 未能抓取）；PR Newswire 为 BlissBio 官方稿分发（tier 3）。"
-    },
-    {
-      "id": "2023-MerckK-Hasten-be982e78",
-      "date": "2023-05-11",
-      "year": 2023,
-      "licensor": "Merck KGaA",
-      "licensee": "海森生物 Hasten Biopharmaceutical",
-      "asset": "生长抑素 Somatostatin (Stilamin®/思他宁®)",
-      "target": "Somatostatin receptors (SSTR1-5)",
-      "modality": "Peptide/Protein",
-      "indication": "Other",
-      "stage": "Marketed",
-      "deal_type": "Asset transfer",
-      "region": "Greater China",
-      "territory": "大中华 Greater China + 瑞士 Switzerland",
-      "confidence": "high",
-      "currency": null,
-      "fx_rate": null,
-      "upfront": null,
-      "total_value": null,
-      "upfront_musd": null,
-      "total_value_musd": null,
-      "milestone_musd": null,
-      "milestone_derivable": false,
-      "has_upfront": false,
-      "has_total": false,
-      "value_disclosure": "未披露或不适用 Undisclosed / N/A",
-      "source_name": "海森生物新闻稿",
-      "source_title": "海森生物医药有限公司大事记（2023年5月11日，完成对思他宁®的收购）",
-      "source_url": "https://www.hastenpharma.com/news/87.html",
-      "publish_date": "2023-10-12",
-      "analyst_note": "交易方向：中国方（海森生物）收购境外方（德国/瑞士默克 Merck KGaA，原 Merck Serono）资产 —— 属【双向均可】的资产转让，方向为「中国方受让境外方资产」。海森生物获得思他宁®（生长抑素）在大中华及瑞士包括生产在内商业化权利的独家许可（收购+独家许可混合结构）。对价未披露。target 依据：生长抑素为多肽激素，通过结合生长抑素受体(SSTR1-5)发挥药理作用，属公开确定的药理事实（§8b）。indication 归入「其他 Other」：思他宁用于急性食管胃底静脉曲张出血、胰腺术后并发症等急重症/消化道适应症，不属枚举中其他具体领域。region 归入「大中华 Greater China」：territory 含大中华+瑞士，主体权益为大中华区，瑞士为附加区域，已在 territory 列明。MAH 转移：2023-12-12 瑞士 MAH 由默克转至 Hasten Biopharmaceutic (Switzerland) AG；2024 年陆续完成大中华区 MAH 转移。"
     },
     {
       "id": "2023-Harbou-Pharma-f409158f",
