@@ -29,7 +29,7 @@ def test_overview_loads(page):
     page.locator(".kpi .value").first.wait_for()
     assert page.locator("#nav button").count() == 7
     assert page.locator(".kpi .value").first.inner_text().strip() != ""
-    assert page.locator(".fp-tile").count() == 8
+    assert page.locator(".fp-tile").count() == 12
 
 def test_landscape_paired_donuts(page):
     page.goto(BASE)

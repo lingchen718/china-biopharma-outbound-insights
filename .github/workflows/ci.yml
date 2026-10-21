@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest playwright
+          python -m playwright install chromium --with-deps
+
+      - name: Seed data snapshot
+        run: python db/seed.py
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: E2E tests with API server
+        run: |
+          python api/server.py > /tmp/api-server.log 2>&1 &
+          SERVER_PID=$!
+          up=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8090/api/meta >/dev/null; then up=1; break; fi
+            sleep 1
+          done
+          if [ "$up" != "1" ]; then
+            echo "API server failed to start"; cat /tmp/api-server.log; exit 1
+          fi
+          python -m pytest tests/test_e2e.py -v
+          code=$?
+          kill $SERVER_PID 2>/dev/null || true
+          exit $code
