@@ -313,7 +313,7 @@ function buildFilterbar(){
       <button class="dd-btn" data-dd="${f.key}">${f.label} <span class="n">${n}</span> ▾</button>
       <div class="dd-menu" data-menu="${f.key}">${f.values.map(v=>`<label><input type="checkbox" data-fk="${f.key}" data-fv="${v}" ${state[f.key].has(v)?'checked':''}> <span class="dot" style="background:${f.color(v)}"></span>${f.key==='disclosure'?(DISCLOSURE_LABEL[v]||v):v}</label>`).join('')}</div></div>`;
   }
-  html += `<button class="f-reset" id="freset">Reset</button>`;
+  html += `<button class="f-reset" id="freset">Reset</button><button class="f-reset" id="fquality">数据质量 Data Quality</button>`;
   document.getElementById('filterbar').innerHTML = html;
 }
 function syncFilterbar(){
@@ -1169,6 +1169,28 @@ async function renderExplorer(){
 }
 
 // ===== 弹窗 =====
+async function openQuality(){
+  const q = await fetch('/api/quality').then(r=>r.json());
+  const d = q.disclosure || {};
+  document.getElementById('modal').innerHTML = `
+    <button class="x" onclick="closeDeal()">✕</button>
+    <div class="deal-head"><b>数据质量 Data Quality</b></div>
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi"><div class="label">总记录 Total Deals</div><div class="value">${q.total}</div></div>
+      <div class="kpi"><div class="label">已披露首付款 Upfront Disclosed</div><div class="value">${d.upfront_disclosed}</div></div>
+      <div class="kpi"><div class="label">已披露总额 Total Disclosed</div><div class="value">${d.total_disclosed}</div></div>
+      <div class="kpi"><div class="label">里程碑可派生 Milestone Derivable</div><div class="value">${d.milestone_derivable}</div></div>
+      <div class="kpi"><div class="label">里程碑不可派生 Not Derivable</div><div class="value">${d.milestone_not_derivable}</div></div>
+      <div class="kpi"><div class="label">阶段未知 Stage Unknown</div><div class="value">${d.stage_unknown}</div></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3>置信度分布 Confidence</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${(q.confidence||[]).map(c=>`<span class="tag">${c.confidence}：${c.n}</span>`).join('')}</div></div>
+    <div class="card" style="margin-top:12px"><h3>按年统计 By Year</h3>
+      <table class="tbl"><thead><tr><th>年份 Year</th><th>记录 Rows</th><th>已披露首付款 Upfront</th><th>已披露总额 Total</th></tr></thead><tbody>${(q.per_year||[]).map(r=>`<tr><td>${r.year}</td><td>${r.rows}</td><td>${r.up_n}</td><td>${r.tot_n}</td></tr>`).join('')}</tbody></table></div>
+    <div style="margin-top:14px;display:flex;justify-content:flex-end"><button class="dd-btn" style="background:var(--accent);color:#1c1700;border-color:var(--accent);font-weight:600" onclick="closeDeal()">关闭</button></div>`;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
 function openDeal(id){
   const d=DEALS.find(x=>x.id===id); if(!d) return;
   document.getElementById('modal').innerHTML = `
@@ -1321,6 +1343,7 @@ function wireFilterbar(){
   document.getElementById('fy0').onchange=e=>{ state.years[0]=+e.target.value; if(state.years[0]>state.years[1]) state.years[1]=state.years[0]; refresh(); };
   document.getElementById('fy1').onchange=e=>{ state.years[1]=+e.target.value; if(state.years[1]<state.years[0]) state.years[0]=state.years[1]; refresh(); };
   document.getElementById('freset').onclick=()=>{ resetFilters(); render(); };
+  document.getElementById('fquality').onclick=()=>{ openQuality(); };
 }
 function resetFilters(){
   state.years=[2020,2026];

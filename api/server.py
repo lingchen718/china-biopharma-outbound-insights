@@ -393,6 +393,24 @@ def ep_companies_network():
         "FROM deals GROUP BY licensor, licensee")
     return {"nodes": nodes, "edges": edges}
 
+def ep_quality(qs):
+    total = one("SELECT COUNT(*) n FROM deals")["n"]
+    per_year = rows("SELECT year, COUNT(*) rows, SUM(has_upfront) up_n, SUM(has_total) tot_n FROM deals GROUP BY year ORDER BY year")
+    conf = rows("SELECT confidence, COUNT(*) n FROM deals GROUP BY confidence ORDER BY n DESC")
+    return {
+        "total": total,
+        "per_year": per_year,
+        "confidence": conf,
+        "disclosure": {
+            "upfront_disclosed": one("SELECT COUNT(*) n FROM deals WHERE has_upfront=1")["n"],
+            "total_disclosed": one("SELECT COUNT(*) n FROM deals WHERE has_total=1")["n"],
+            "milestone_derivable": one("SELECT COUNT(*) n FROM deals WHERE milestone_derivable=1")["n"],
+            "milestone_not_derivable": one("SELECT COUNT(*) n FROM deals WHERE has_total=1 AND milestone_derivable=0")["n"],
+            "stage_unknown": one("SELECT COUNT(*) n FROM deals WHERE stage='Unknown'")["n"],
+            "confidence_unknown": one("SELECT COUNT(*) n FROM deals WHERE confidence='unknown'")["n"],
+        },
+    }
+
 ENDPOINTS = {
     "/api/meta": lambda qs: ep_meta(),
     "/api/deals": ep_deals,
@@ -412,6 +430,7 @@ ENDPOINTS = {
     "/api/therapy/deep-dive": ep_therapy_deep,
     "/api/therapy/opportunity-matrix": ep_therapy_opportunity,
     "/api/pipeline/aggregates": ep_pipeline_aggregates,
+    "/api/quality": ep_quality,
     "/api/companies/leaderboard": ep_companies_leaderboard,
     "/api/companies/network": lambda qs: ep_companies_network(),
 }
