@@ -558,7 +558,7 @@ async function renderOverview(){
     fetch('/api/deals?'+d.toString()).then(r=>r.json())
   ]);
   main.innerHTML = title('市场概览 Overview', PAGE_EN.overview) + kpiHtmlFromServer(kpis) +
-  `<div class="grid" style="margin-top:14px">
+  `<div class="grid g2" style="margin-top:14px;align-items:start">
     <div class="card"><h3><span class="zh">交易活跃度趋势</span> <span class="en">Deal Activity Trends</span></h3>
       <div class="metric-switch" id="ov-metric"></div><div class="dim-switch" id="ov-dim"></div>
       <div id="ov-trend" class="chart ch-md"></div></div>
