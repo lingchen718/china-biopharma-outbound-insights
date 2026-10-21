@@ -204,6 +204,45 @@ def ep_therapy_deep(qs):
         "companies": rows("SELECT licensor, COUNT(*) deals, COALESCE(SUM(total_value_musd),0) total FROM deals"+cond+f" GROUP BY licensor ORDER BY deals DESC LIMIT 10", a2),
     }
 
+def _med(vals):
+    if not vals: return None
+    a = sorted(vals); m = len(a)//2
+    return round((a[m] if len(a)%2 else (a[m-1]+a[m])/2), 2)
+
+def ep_therapy_opportunity(qs):
+    w, a = filter_clause(qs)
+    raw = rows("SELECT indication, modality, asset, year, has_total, has_upfront, upfront_musd, total_value_musd FROM deals" + (w or ""), a)
+    known = [r for r in raw if r["modality"] and r["modality"] not in ("Other","Unknown")
+             and r["indication"] and r["indication"] not in ("Other","Unknown")]
+    combos = {}
+    for r in known:
+        k = r["indication"] + " | " + r["modality"]
+        combos.setdefault(k, {"indication": r["indication"], "modality": r["modality"], "list": []})["list"].append(r)
+    yrs = sorted({r["year"] for r in known})
+    complete = yrs[:-1]; recent3 = complete[-3:]; prev3 = complete[-6:-3]
+    tm = []
+    for c in combos.values():
+        tot_vals = [r["total_value_musd"] for r in c["list"] if r["has_total"]]
+        up_vals = [r["upfront_musd"] for r in c["list"] if r["has_upfront"]]
+        mt, mu = _med(tot_vals), _med(up_vals)
+        if not (mt or mu): continue
+        assets = len({r["asset"] for r in c["list"] if r["asset"]})
+        discN = len(tot_vals)
+        tm.append({"indication": c["indication"], "modality": c["modality"], "n": len(c["list"]),
+                   "assets": assets, "total": round(sum(tot_vals),2), "medianTotal": mt, "medianUp": mu,
+                   "discN": discN, "discRate": round(discN/len(c["list"])*100) if c["list"] else 0,
+                   "r": sum(1 for r in c["list"] if r["year"] in recent3),
+                   "p": sum(1 for r in c["list"] if r["year"] in prev3)})
+    maxN = max([c["n"] for c in tm] or [1])
+    for c in tm:
+        c["act"] = round(c["n"]/maxN*100, 1)
+        if c["p"] > 0:
+            g = (c["r"] - c["p"]) / c["p"]
+            c["cat"] = "增长" if g > 0.1 else ("下降" if g < -0.1 else "稳定")
+        else:
+            c["cat"] = "新兴"
+    return {"rows": tm, "years": yrs, "recent3": recent3, "prev3": prev3}
+
 def ep_companies_leaderboard(qs):
     side = "licensor" if qs.get("side",["licensor"])[0]=="licensor" else "licensee"
     sort = qs.get("sort",["deals"])[0]
@@ -241,6 +280,7 @@ ENDPOINTS = {
     "/api/pipeline/assets": lambda qs: ep_pipeline_assets(),
     "/api/therapy/area-trends": lambda qs: ep_therapy_trends(),
     "/api/therapy/deep-dive": ep_therapy_deep,
+    "/api/therapy/opportunity-matrix": ep_therapy_opportunity,
     "/api/companies/leaderboard": ep_companies_leaderboard,
     "/api/companies/network": lambda qs: ep_companies_network(),
 }

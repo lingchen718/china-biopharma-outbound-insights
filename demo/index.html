@@ -973,7 +973,24 @@ let therapyArea = 'Oncology';
 let therapyOppValue = 'medianTotal';
 const AREA_HOTSPOTS = {Oncology:['肺癌 NSCLC','乳腺癌 Breast','卵巢癌 Ovarian','胃癌 Gastric','血液瘤 Hematologic'], Autoimmune:['类风湿关节炎 RA','银屑病 Psoriasis','狼疮 SLE','炎症性肠病 IBD'], CNS:['阿尔茨海默 AD','帕金森 PD','疼痛 Pain','抑郁症 MDD'], Metabolic:['肥胖 Obesity','糖尿病 Diabetes','NASH/MASH','高血脂 Dyslipidemia'], Infectious:['HBV','HIV','流感 Influenza','抗感染 Anti-infective'], 'Rare disease':['罕见肿瘤','溶酶体贮积症','血友病 Hemophilia'], Vaccine:['新冠 COVID','流感疫苗','RSV'], Other:['其他']};
 
-function renderTherapy(deals){
+function barOptionFromServer(list, dim, colorMap){
+  const data = (list||[]).slice().sort((a,b)=>b.v-a.v);
+  return { tooltip:{...TOOLTIP_DARK, trigger:'axis'},
+    grid:{left:8,right:8,top:12,bottom:8,containLabel:true},
+    xAxis:{type:'category', data:data.map(x=>labelOf(dim,x.key)), ...AXIS, axisLabel:{...AXIS.axisLabel, rotate:data.length>6?18:0}},
+    yAxis:{type:'value', ...AXIS},
+    series:[{type:'bar', barMaxWidth:34, data:data.map(x=>({value:x.v, itemStyle:{color:(colorMap&&colorMap[x.key])||'#facc15', borderRadius:[4,4,0,0]}}))}]};
+}
+
+async function renderTherapy(){
+  const q = stateParams().toString();
+  const dq = new URLSearchParams(q); dq.set('indication', therapyArea);
+  const [areaTrends, opp, deep] = await Promise.all([
+    fetch('/api/therapy/area-trends?'+q).then(r=>r.json()),
+    fetch('/api/therapy/opportunity-matrix?'+q).then(r=>r.json()),
+    fetch('/api/therapy/deep-dive?'+dq.toString()).then(r=>r.json())
+  ]);
+
   main.innerHTML = title('治疗领域 Therapeutic Areas', PAGE_EN.therapy) +
   `<div class="grid g2">
     <div class="card"><h3><span class="zh">治疗趋势</span> <span class="en">Disease Area Trends</span></h3><p class="hint">各治疗领域的年度交易数量变化。Annual deal count trends by therapeutic area.</p><div id="th-trend" class="chart ch-lg"></div></div>
@@ -988,40 +1005,31 @@ function renderTherapy(deals){
   <div class="card" style="margin-top:14px"><h3><span class="zh">综合机会矩阵</span> <span class="en">Opportunity Matrix · Indication × Modality</span></h3>
     <p class="hint">识别不同适应症与技术类型的交易热点、潜在高价值机会及竞争格局。Identifies deal hotspots, potential high-value opportunities and competitive landscape across indications and modalities.</p>
     <div class="metric-switch" id="th-opp-value"></div>
-    <div id="th-opp" class="chart ch-lg"></div><div class="hint" style="margin-top:8px">X=标准化交易活跃度；Y=单笔金额中位数；气泡大小=交易笔数；颜色=近期增长趋势；虚线=样本中位数（四象限：高热度高价值 / 低热度高价值 / 高热度低价值 / 低热度低价值）。X=standardized activity; Y=median deal value; size=deal count; color=recent growth; dashed lines=median thresholds.</div></div>`;
+    <div id="th-opp" class="chart ch-lg"></div><div class="hint" style="margin-top:8px">X=标准化交易活跃度；Y=单笔金额中位数；气泡大小=交易笔数；颜色=近期增长趋势；虚线=样本中位数。X=standardized activity; Y=median deal value; size=deal count; color=recent growth; dashed lines=median thresholds.</div></div>`;
 
-  mount('th-trend', buildTrend(deals, 'count', 'indication'));
+  // 治疗趋势
+  mount('th-trend', trendFromServer(areaTrends, 'count', 'indication'));
+
+  // 适应症热点（计数来自趋势序列求和；具体适应症标签为静态）
+  const indCounts = {};
+  (areaTrends.series||[]).forEach(se=>{ indCounts[se.name] = sum(se.data||[]); });
+  const hotRows = INDS.map(i=>({i, n: indCounts[i]||0})).sort((a,b)=>b.n-a.n);
   document.getElementById('th-hot').innerHTML = `<table class="tbl"><thead><tr><th>治疗领域 Therapeutic Area</th><th>交易笔数 Deals</th><th>热门具体适应症 Indication Hotspots</th></tr></thead><tbody>
-    ${INDS.map(i=>{ const n=deals.filter(d=>d.indication===i).length; return `<tr><td>${labelOf('indication',i)}</td><td class="num">${n}</td><td>${(AREA_HOTSPOTS[i]||[]).map(h=>tagHtml('#334155',h)).join(' ')}</td></tr>`; }).join('')}
+    ${hotRows.map(r=>`<tr><td>${labelOf('indication',r.i)}</td><td class="num">${r.n}</td><td>${(AREA_HOTSPOTS[r.i]||[]).map(h=>tagHtml('#334155',h)).join(' ')}</td></tr>`).join('')}
   </tbody></table>`;
   document.getElementById('th-area').onchange = e=>{ therapyArea=e.target.value; render(); };
 
-  const sub = deals.filter(d=>d.indication===therapyArea);
-  mount('th-mod', barOption(sub, 'modality', Object.fromEntries(MODS.map(m=>[m.k,m.c]))));
-  mount('th-stage', barOption(sub, 'stage', STAGE_COLORS));
-  const co={}; sub.forEach(d=>{ if(!co[d.licensor]) co[d.licensor]={n:0,total:0}; co[d.licensor].n++; if(d.disclosed) co[d.licensor].total+=d.total; });
-  const coRows=Object.entries(co).sort((a,b)=>b[1].n-a[1].n).slice(0,10);
-  document.getElementById('th-co').innerHTML = `<table class="tbl"><thead><tr><th>中国授权方 Licensor（${labelOf('indication',therapyArea)}）</th><th>交易笔数 Deals</th><th>披露总额 Disclosed Value</th></tr></thead><tbody>${coRows.map(([k,v])=>`<tr><td>${k}</td><td class="num">${v.n}</td><td class="num">${fmtM(v.total)}</td></tr>`).join('')}</tbody></table>`;
-  // 综合机会矩阵：Indication × Modality
-  const knownTm = deals.filter(d=>d.modality && d.modality!=='Other' && d.modality!=='Unknown' && d.indication && d.indication!=='Other' && d.indication!=='Unknown');
-  const tmComboMap = {};
-  knownTm.forEach(d=>{ const k=d.indication+' | '+d.modality; if(!tmComboMap[k]) tmComboMap[k]={indication:d.indication, modality:d.modality, list:[]}; tmComboMap[k].list.push(d); });
-  const tmList = Object.values(tmComboMap).map(c=>{ const dl=c.list.filter(d=>d.disclosed); return {indication:c.indication, modality:c.modality, list:c.list, n:c.list.length, medianTotal:median(dl.map(d=>d.total)), medianUp:median(dl.map(d=>d.upfront)), total:sum(dl.map(d=>d.total)), discN:dl.length, assets:new Set(c.list.map(d=>d.asset).filter(Boolean)).size}; }).filter(c=>c.medianTotal>0 || c.medianUp>0);
-  const tYrs = [...new Set(knownTm.map(d=>d.year))].sort((a,b)=>a-b);
-  const tComplete = tYrs.slice(0,-1), tRecent3 = tComplete.slice(-3), tPrev3 = tComplete.slice(-6,-3);
-  const tMaxN = Math.max(1, ...tmList.map(c=>c.n));
+  // 深入分析
+  mount('th-mod', barOptionFromServer((deep.modality||[]).map(x=>({key:x.modality, v:x.v})), 'modality', Object.fromEntries(MODS.map(m=>[m.k,m.c]))));
+  mount('th-stage', barOptionFromServer((deep.stage||[]).map(x=>({key:x.stage, v:x.v})), 'stage', STAGE_COLORS));
+  const coRows = deep.companies||[];
+  document.getElementById('th-co').innerHTML = `<table class="tbl"><thead><tr><th>中国授权方 Licensor（${labelOf('indication',therapyArea)}）</th><th>交易笔数 Deals</th><th>披露总额 Disclosed Value</th></tr></thead><tbody>${coRows.map(c=>`<tr><td>${c.licensor}</td><td class="num">${c.deals}</td><td class="num">${fmtM(c.total)}</td></tr>`).join('')}</tbody></table>`;
+
+  // 综合机会矩阵
   const TMCATS = ['增长','稳定','下降','新兴'];
   const TMCAT_COLOR = {'增长':'#facc15','稳定':'#94a3b8','下降':'#f87171','新兴':'#60a5fa'};
   const TMCAT_EN = {'增长':'Growth','稳定':'Stable','下降':'Decline','新兴':'Emerging/Insufficient'};
-  const tmRows = tmList.map(c=>{
-    const r=c.list.filter(d=>tRecent3.includes(d.year)).length;
-    const p=c.list.filter(d=>tPrev3.includes(d.year)).length;
-    let cat='新兴';
-    if(tRecent3.length>=3 && tPrev3.length>=3 && p>0){ const g=(r-p)/p; cat = g>0.1?'增长':(g<-0.1?'下降':'稳定'); }
-    else if(p>0){ const g=(r-p)/p; cat = g>0.1?'增长':(g<-0.1?'下降':'稳定'); }
-    const val = therapyOppValue==='medianTotal' ? c.medianTotal : c.medianUp;
-    return {indication:c.indication, modality:c.modality, n:c.n, act:c.n/tMaxN*100, val:val||0, cat, r, p, assets:c.assets, total:c.total, medianTotal:c.medianTotal, medianUp:c.medianUp, discN:c.discN, discRate:c.n?Math.round(c.discN/c.n*100):0};
-  });
+  const tmRows = (opp.rows||[]).map(c=>({...c, val: therapyOppValue==='medianTotal' ? (c.medianTotal||0) : (c.medianUp||0)}));
   const tmMedX = median(tmRows.map(r=>r.act)), tmMedY = median(tmRows.map(r=>r.val));
   const tmSeries = TMCATS.map(cat=>({name:`${cat} ${TMCAT_EN[cat]}`, type:'scatter', data:tmRows.filter(r=>r.cat===cat).map(r=>({value:[r.act,r.val], _r:r})), itemStyle:{color:TMCAT_COLOR[cat]}, symbolSize:function(v,p){return 10+Math.sqrt(p.data._r.n||1)*5;}}));
   if(tmSeries.length) tmSeries[0].markLine = {silent:true, symbol:'none', lineStyle:{color:'#334155', type:'dashed'}, data:[{xAxis:tmMedX},{yAxis:tmMedY}]};
