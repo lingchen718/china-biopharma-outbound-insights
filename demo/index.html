@@ -789,12 +789,12 @@ async function renderEconomics(){
 
   main.innerHTML = title('交易金额 Deal Economics', PAGE_EN.economics) +
   `<div class="kpis" style="grid-template-columns:repeat(5,1fr)">
-    ${[ ['已披露首付款笔数 Deals with Disclosed Upfronts', fmtInt(nUp)+' / '+fmtInt(totalRows), upCov+'% coverage'],
-        ['已披露首付款总额 Total Disclosed Upfront', fmtM(snap.total_upfront), 'US$'],
-        ['已披露首付款中位数 Median Upfront', fmtM(snap.median_upfront), 'US$M / deal'],
-        ['已披露总额笔数 Total Disclosed Deals', fmtInt(nTot)+' / '+fmtInt(totalRows), totCov+'% coverage'],
-        ['潜在总额 Total Potential Value', fmtM(snap.total_value), 'US$'] ]
-      .map(([l,v,s])=>`<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}
+    ${[ ['已披露首付款笔数 Deals with Disclosed Upfronts', fmtInt(nUp)+' / '+fmtInt(totalRows), upCov+'% coverage', '#facc15'],
+        ['已披露首付款总额 Total Disclosed Upfront', fmtM(snap.total_upfront), 'US$', '#60a5fa'],
+        ['已披露首付款中位数 Median Upfront', fmtM(snap.median_upfront), 'US$M / deal', '#f87171'],
+        ['已披露总额笔数 Total Disclosed Deals', fmtInt(nTot)+' / '+fmtInt(totalRows), totCov+'% coverage', '#34d399'],
+        ['潜在总额 Total Potential Value', fmtM(snap.total_value), 'US$', '#c084fc'] ]
+      .map(([l,v,s,c])=>`<div class="kpi" style="--k:${c}"><div class="label">${l}</div><div class="value">${v}</div><div class="sub">${s}</div></div>`).join('')}
   </div>
 
   <div class="card" style="margin-top:14px">
