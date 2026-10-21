@@ -1043,7 +1043,7 @@ async function renderTherapy(){
   <div class="card" style="margin-top:14px"><h3><span class="zh">综合机会矩阵</span> <span class="en">Opportunity Matrix · Indication × Modality</span></h3>
     <p class="hint">识别不同适应症与技术类型的交易热点、潜在高价值机会及竞争格局。Identifies deal hotspots, potential high-value opportunities and competitive landscape across indications and modalities.</p>
     <div class="metric-switch" id="th-opp-value"></div>
-    <div id="th-opp" class="chart ch-lg"></div><div class="hint" style="margin-top:8px">X=标准化交易活跃度；Y=单笔金额中位数；气泡大小=交易笔数；颜色=近期增长趋势；虚线=样本中位数。X=standardized activity; Y=median deal value; size=deal count; color=recent growth; dashed lines=median thresholds.</div></div>`;
+    <div id="th-opp" class="chart ch-lg"></div><div class="hint" style="margin-top:8px">X=独立交易笔数（Deal Count）；Y=单笔金额中位数；气泡大小=去重资产数；颜色=近期增长趋势；虚线=样本中位数。X=deal count; Y=median deal value; size=distinct assets; color=recent growth; dashed lines=median thresholds.</div></div>`;
 
   // 治疗趋势
   mount('th-trend', trendFromServer(areaTrends, 'count', 'indication'));
@@ -1068,15 +1068,15 @@ async function renderTherapy(){
   const TMCAT_COLOR = {'增长':'#facc15','稳定':'#94a3b8','下降':'#f87171','新兴':'#60a5fa'};
   const TMCAT_EN = {'增长':'Growth','稳定':'Stable','下降':'Decline','新兴':'Emerging/Insufficient'};
   const tmRows = (opp.rows||[]).map(c=>({...c, val: therapyOppValue==='medianTotal' ? (c.medianTotal||0) : (c.medianUp||0)}));
-  const tmMedX = median(tmRows.map(r=>r.act)), tmMedY = median(tmRows.map(r=>r.val));
-  const tmSeries = TMCATS.map(cat=>({name:`${cat} ${TMCAT_EN[cat]}`, type:'scatter', data:tmRows.filter(r=>r.cat===cat).map(r=>({value:[r.act,r.val], _r:r})), itemStyle:{color:TMCAT_COLOR[cat]}, symbolSize:function(v,p){return 10+Math.sqrt(p.data._r.n||1)*5;}}));
+  const tmMedX = median(tmRows.map(r=>r.n)), tmMedY = median(tmRows.map(r=>r.val));
+  const tmSeries = TMCATS.map(cat=>({name:`${cat} ${TMCAT_EN[cat]}`, type:'scatter', data:tmRows.filter(r=>r.cat===cat).map(r=>({value:[r.n,r.val], _r:r})), itemStyle:{color:TMCAT_COLOR[cat]}, symbolSize:function(v,p){return 10+Math.sqrt(p.data._r.assets||1)*5;}}));
   if(tmSeries.length) tmSeries[0].markLine = {silent:true, symbol:'none', lineStyle:{color:'#334155', type:'dashed'}, data:[{xAxis:tmMedX},{yAxis:tmMedY}]};
   const thOppChart = mount('th-opp', {
     tooltip:{...TOOLTIP_DARK, formatter:p=>{ const r=p.data._r; return `<b>${labelOf('indication',r.indication)} × ${labelOf('modality',r.modality)}</b><br/>交易笔数 Deals：<b>${r.n}</b><br/>去重资产 Assets：<b>${r.assets}</b><br/>单笔金额中位数 Median Total：<b>${fmtM(r.medianTotal)}</b><br/>首付款中位数 Median Upfront：<b>${fmtM(r.medianUp)}</b><br/>披露率 Disclosure：<b>${r.discRate}%</b>（${r.discN}/${r.n}）<br/>近期/此前 Recent/Prev：<b>${r.r}</b> / <b>${r.p}</b><br/>趋势 Growth：<b>${r.cat}</b>`; }},
     legend:{top:0, data:tmSeries.map(x=>x.name), textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
-    grid:{left:16,right:16,top:30,bottom:32,containLabel:true},
-    xAxis:{type:'value', ...AXIS, name:'交易活跃度 Activity（标准化）', nameTextStyle:{color:'#8b9bb0'}, scale:true},
-    yAxis:{type:'value', ...AXIS, name: therapyOppValue==='medianTotal' ? '交易价值 Median Total (US$M)' : '交易价值 Median Upfront (US$M)', nameTextStyle:{color:'#8b9bb0'}, scale:true},
+    grid:{left:48,right:16,top:30,bottom:32,containLabel:true},
+    xAxis:{type:'value', ...AXIS, name:'交易活跃度 Deal Count（独立交易笔数）', nameTextStyle:{color:'#8b9bb0'}, scale:true},
+    yAxis:{type:'value', ...AXIS, name: therapyOppValue==='medianTotal' ? 'Median Total (US$M)' : 'Median Upfront (US$M)', nameLocation:'middle', nameGap:30, nameTextStyle:{color:'#8b9bb0'}, scale:true},
     series:tmSeries
   });
   if(thOppChart) thOppChart.on('click', p=>{ if(p.data && p.data._r){ openIndMod(p.data._r.indication, p.data._r.modality); } });
