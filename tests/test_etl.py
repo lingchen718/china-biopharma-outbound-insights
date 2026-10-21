@@ -109,3 +109,13 @@ class TestFnum(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestDataFacts(unittest.TestCase):
+    """锁定关键数据口径，防止后续 ETL 重跑时无意漂移。"""
+    def test_alphamab_2026_licensor_name(self):
+        with open(os.path.join(build_dataset.OUT_DIR, "deals.json"), encoding="utf-8") as f:
+            deals = json.load(f)["deals"]
+        row = next(d for d in deals if d["id"] == "2026-Alpham-Pathos-c895ed3a")
+        self.assertEqual(row["licensor"], "康宁杰瑞 Alphamab Oncology")
+        self.assertNotIn("生物制药", row["licensor"])
