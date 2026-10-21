@@ -54,6 +54,19 @@ def test_explorer_pagination_and_deal_card(page):
     page.wait_for_selector("#modalOverlay.open")
     page.locator("#modal .x").click()
 
+def test_explorer_advanced_filters_and_export(page):
+    page.goto(BASE)
+    page.locator("#nav button").filter(has_text="交易数据库").click()
+    page.locator("#ex-table tbody tr").first.wait_for()
+    assert page.locator("#ex-export").is_visible()
+    assert page.locator("#ex-upmin").is_visible()
+    assert page.locator("#ex-totalmin").is_visible()
+    assert page.locator("#ex-datefrom").is_visible()
+    assert page.locator("#ex-milestone").is_visible()
+    page.select_option("#ex-milestone", "derivable")
+    page.wait_for_function("location.href.includes('milestone=derivable')")
+    page.wait_for_function("document.getElementById('ex-count').textContent.includes('共')")
+
 def test_filter_persists_in_url(page):
     page.goto(BASE)
     page.locator(".kpi .value").first.wait_for()

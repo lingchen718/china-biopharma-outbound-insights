@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """本地 API + 静态站点服务（仅标准库）。聚合逻辑全部在服务端 SQL/内存完成。"""
-import json, mimetypes, os, sqlite3, subprocess, sys, time
+import csv, io, json, mimetypes, os, sqlite3, subprocess, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -85,6 +85,28 @@ def filter_clause(qs):
             elif v == "undisclosed": conds.append("(has_upfront=0 AND has_total=0)")
         if conds:
             where.append("(" + " OR ".join(conds) + ")")
+    # 金额区间（百万美元；未披露为 NULL，不参与区间比较）
+    for k, col in (("upfront_min","upfront_musd"),("upfront_max","upfront_musd"),
+                   ("total_min","total_value_musd"),("total_max","total_value_musd")):
+        if k in qs and qs[k][0] not in ("", None):
+            try:
+                val = float(qs[k][0])
+            except ValueError:
+                continue
+            op = ">=" if k.endswith("_min") else "<="
+            where.append(f"{col} IS NOT NULL AND {col} {op} ?"); args.append(val)
+    # 签署日期区间（date 为 YYYY-MM-DD 字符串，可直接字典序比较）
+    for k, op in (("date_from",">="),("date_to","<=")):
+        if k in qs and qs[k][0] not in ("", None):
+            where.append(f"date {op} ?"); args.append(qs[k][0])
+    # 里程碑可派生
+    if "milestone" in qs:
+        conds = []
+        for v in [x for x in qs["milestone"][0].split(",") if x]:
+            if v == "derivable": conds.append("milestone_derivable=1")
+            elif v == "not_derivable": conds.append("milestone_derivable=0")
+        if conds:
+            where.append("(" + " OR ".join(conds) + ")")
     return (" WHERE " + " AND ".join(where) if where else "", args)
 
 # ---------- 页面聚合 ----------
@@ -111,6 +133,38 @@ def ep_deals(qs):
         sql += " LIMIT ? OFFSET ?"
         args = a + [limit, offset]
     return {"deals": [boolify(r) for r in rows(sql, args)], "total": total}
+
+EXPORT_COLS = [
+    ("deal_id","交易ID Deal ID"), ("date","签署日期 Date"), ("year","年份 Year"),
+    ("licensor","中国授权方 Licensor"), ("licensee","海外引进方 Licensee"),
+    ("asset","资产 Asset"), ("target","靶点 Target"),
+    ("modality","药物形式 Modality"), ("indication","治疗领域 Therapeutic Area"),
+    ("stage","研发阶段 Stage"), ("deal_type","交易类型 Deal Type"),
+    ("region","授权区域 Region"), ("region_group","上层大区 Region Group"),
+    ("territory","授权区域原文 Territory"), ("geo_territory","解析地域 Geo Territory"),
+    ("upfront_musd","首付款(百万美元) Upfront (USD M)"),
+    ("total_value_musd","潜在总额(百万美元) Total Value (USD M)"),
+    ("milestone_musd","里程碑(百万美元) Milestone (USD M)"),
+    ("milestone_derivable","里程碑可派生 Milestone Derivable"),
+    ("has_upfront","已披露首付款 Has Upfront"),
+    ("has_total","已披露总额 Has Total"),
+    ("confidence","置信度 Confidence"), ("value_disclosure","披露类型 Value Disclosure"),
+    ("source_name","信源 Source"), ("source_url","信源链接 URL"),
+    ("publish_date","发布时间 Publish Date"), ("analyst_note","分析备注 Analyst Note"),
+]
+
+def ep_deals_csv(qs):
+    """按当前筛选导出全部匹配交易为 CSV（带 BOM，Excel 可直接打开中文）。"""
+    w, a = filter_clause(qs)
+    cols = [c[0] for c in EXPORT_COLS]
+    sql = "SELECT " + ",".join(cols) + " FROM deals" + w + " ORDER BY date DESC"
+    data = rows(sql, a)
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([c[1] for c in EXPORT_COLS])
+    for r in data:
+        writer.writerow([r.get(c[0], "") for c in EXPORT_COLS])
+    return "\ufeff" + buf.getvalue()
 
 def ep_overview_kpis(qs):
     w, a = filter_clause(qs)
@@ -476,6 +530,17 @@ class Handler(BaseHTTPRequestHandler):
             dim = p.path.rsplit("/",1)[-1]
             try: return self._json(cached(key, lambda: ep_landscape(qs, dim)))
             except Exception as e: return self._json({"error": str(e)}, 500)
+        if p.path == "/api/deals/export":
+            try:
+                body = ep_deals_csv(qs).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="deals_export.csv"')
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers(); self.wfile.write(body)
+                return
+            except Exception as e:
+                return self._json({"error": str(e)}, 500)
         fn = ENDPOINTS.get(p.path)
         if fn:
             try:

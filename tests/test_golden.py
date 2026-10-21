@@ -13,7 +13,8 @@ CREATE TABLE deals (
   date TEXT, year INTEGER,
   licensor TEXT, licensee TEXT, asset TEXT, target TEXT,
   modality TEXT, indication TEXT, stage TEXT, deal_type TEXT,
-  region TEXT, territory TEXT, confidence TEXT, currency TEXT, fx_rate REAL,
+  region TEXT, territory TEXT, region_group TEXT, geo_territory TEXT, geo_region_group TEXT, geo_status TEXT,
+  confidence TEXT, currency TEXT, fx_rate REAL,
   upfront REAL, total_value REAL,
   upfront_musd REAL, total_value_musd REAL, milestone_musd REAL,
   milestone_derivable INTEGER, has_upfront INTEGER, has_total INTEGER,
@@ -24,19 +25,20 @@ CREATE TABLE deals (
 
 ROWS = [
     ("D1", "2022-01-15", 2022, "LicA", "Lic1", "AssetA", "T1", "ADC", "Oncology", "Phase II", "License-out", "Global", "United States",
-     100.0, 400.0, 300.0, 1, 1, 1),
-    ("D2", "2022-06-20", 2022, "LicB", "Lic2", "AssetB", "T1", "ADC", "Oncology", "Phase I", "License-out", "US & Canada", "United States",
-     50.0, 200.0, 150.0, 1, 1, 1),
+     "Global", "Global", "Global", "resolved", 100.0, 400.0, 300.0, 1, 1, 1),
+    ("D2", "2022-06-20", 2022, "LicB", "Lic2", "AssetB", "T1", "ADC", "Oncology", "Phase I", "License-out", "North America", "United States",
+     "North America", "United States", "North America", "resolved", 50.0, 200.0, 150.0, 1, 1, 1),
     ("D3", "2023-03-01", 2023, "LicC", "Lic3", "AssetC", "T2", "mAb", "Autoimmune", "Phase I", "License-out", "Europe", "Germany",
-     None, None, None, 0, 0, 0),
+     "Europe", "Europe", "Europe", "resolved", None, None, None, 0, 0, 0),
     ("D4", "2023-09-10", 2023, "LicA", "Lic4", "AssetD", "T2", "mAb", "Autoimmune", "Phase II", "License-out", "Europe", "United Kingdom",
-     30.0, 90.0, 60.0, 1, 1, 1),
+     "Europe", "Europe", "Europe", "resolved", 30.0, 90.0, 60.0, 1, 1, 1),
 ]
 
 INSERT = (
     "INSERT INTO deals (deal_id,date,year,licensor,licensee,asset,target,modality,indication,stage,deal_type,region,territory,"
+    "region_group,geo_territory,geo_region_group,geo_status,"
     "upfront_musd,total_value_musd,milestone_musd,milestone_derivable,has_upfront,has_total) "
-    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 )
 
 
@@ -108,6 +110,26 @@ class GoldenCaliber(unittest.TestCase):
         counts = {c["key"]: c["value"] for c in d["counts"]}
         self.assertEqual(counts["ADC"], 2)
         self.assertEqual(counts["mAb"], 2)
+
+    def test_deals_amount_filters(self):
+        self.assertEqual(server.ep_deals({"upfront_min": ["60"]})["total"], 1)
+        self.assertEqual(server.ep_deals({"total_max": ["250"]})["total"], 2)
+        self.assertEqual(server.ep_deals({"upfront_min": ["60"], "total_max": ["250"]})["total"], 0)
+
+    def test_deals_date_filters(self):
+        self.assertEqual(server.ep_deals({"date_from": ["2023-01-01"]})["total"], 2)
+        self.assertEqual(server.ep_deals({"date_to": ["2022-12-31"]})["total"], 2)
+
+    def test_deals_milestone_filter(self):
+        self.assertEqual(server.ep_deals({"milestone": ["derivable"]})["total"], 3)
+        self.assertEqual(server.ep_deals({"milestone": ["not_derivable"]})["total"], 1)
+
+    def test_deals_export_csv(self):
+        csv_text = server.ep_deals_csv({})
+        self.assertTrue(csv_text.startswith("\ufeff交易ID"))
+        self.assertEqual(len(csv_text.strip().splitlines()), 5)  # 表头 + 4 行
+        filtered = server.ep_deals_csv({"milestone": ["not_derivable"]})
+        self.assertEqual(len(filtered.strip().splitlines()), 2)  # 表头 + D3
 
 
 if __name__ == "__main__":

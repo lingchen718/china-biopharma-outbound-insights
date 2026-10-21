@@ -271,7 +271,9 @@ const state = {
   page: 'overview', years: [2020, 2026],
   dealType: new Set(DTYPES), modality: new Set(MODS.map(m=>m.k)),
   indication: new Set(INDS), stage: new Set(STAGES), regionGroup: new Set(REGION_GROUPS),
-  disclosure: new Set(DISCLOSURE_VALUES), search: ''
+  disclosure: new Set(DISCLOSURE_VALUES), search: '',
+  upfrontMin: '', upfrontMax: '', totalMin: '', totalMax: '',
+  dateFrom: '', dateTo: '', milestone: 'all'
 };
 function disclosureOk(d){
   if(state.disclosure.size===DISCLOSURE_VALUES.length) return true;
@@ -480,6 +482,14 @@ function stateParams(){
   add('region_group', state.regionGroup, REGION_GROUPS);
   add('disclosure', state.disclosure, DISCLOSURE_VALUES);
   if(state.search) p.set('q', state.search);
+  const setVal=(k,v)=>{ if(v!=='' && v!=null && v!==undefined) p.set(k, v); };
+  setVal('upfront_min', state.upfrontMin);
+  setVal('upfront_max', state.upfrontMax);
+  setVal('total_min', state.totalMin);
+  setVal('total_max', state.totalMax);
+  setVal('date_from', state.dateFrom);
+  setVal('date_to', state.dateTo);
+  if(state.milestone && state.milestone!=='all') p.set('milestone', state.milestone);
   return p;
 }
 function applyUrlToState(){
@@ -494,6 +504,14 @@ function applyUrlToState(){
   setFrom('region_group', state.regionGroup);
   setFrom('disclosure', state.disclosure);
   if(p.has('q')) state.search = p.get('q');
+  const getVal=k=>p.has(k)?p.get(k):'';
+  state.upfrontMin=getVal('upfront_min');
+  state.upfrontMax=getVal('upfront_max');
+  state.totalMin=getVal('total_min');
+  state.totalMax=getVal('total_max');
+  state.dateFrom=getVal('date_from');
+  state.dateTo=getVal('date_to');
+  state.milestone = p.has('milestone') ? p.get('milestone') : 'all';
 }
 function syncUrl(){
   const q = stateParams().toString();
@@ -1170,33 +1188,64 @@ async function fetchExplorerPage(){
   return fetch('/api/deals?'+p.toString()).then(r=>r.json());
 }
 
+async function refreshExplorerTable(){
+  const d2 = await fetchExplorerPage();
+  const total = d2.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total/EX_PAGE_SIZE));
+  document.getElementById('ex-count').textContent = '共 ' + total + ' 笔';
+  document.getElementById('ex-table').innerHTML = dealTableHtml((d2.deals||[]).map(normalizeDeal));
+  document.getElementById('ex-prev').disabled = exPage<=0;
+  document.getElementById('ex-next').disabled = exPage>=totalPages-1;
+  document.getElementById('ex-pageinfo').textContent = '第 ' + (exPage+1) + ' / ' + totalPages + ' 页';
+}
+
 async function renderExplorer(){
   const data = await fetchExplorerPage();
   const total = data.total || 0;
   const rows = data.deals || [];
   const totalPages = Math.max(1, Math.ceil(total/EX_PAGE_SIZE));
+  const esc = v => String(v==null?'':v).replace(/"/g,'&quot;');
   main.innerHTML = title('交易数据库 Transaction Explorer', PAGE_EN.explorer) +
   `<div class="card">
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
-      <input id="ex-search" class="dd-btn" style="flex:1;padding:9px 12px" placeholder="按公司 / 资产 / 靶点 / 治疗领域检索…" value="${state.search.replace(/"/g,'&quot;')}">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <input id="ex-search" class="dd-btn" style="flex:1;min-width:220px;padding:9px 12px" placeholder="按公司 / 资产 / 靶点 / 治疗领域检索…" value="${esc(state.search)}">
       <span id="ex-count" style="color:var(--muted);white-space:nowrap">共 ${total} 笔</span>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;padding:10px;border:1px solid var(--line);border-radius:10px">
+      <div class="fgroup"><label>首付款 Upfront (USD M)</label><div style="display:flex;gap:6px;align-items:center"><input id="ex-upmin" type="number" step="any" class="dd-btn" placeholder="min" style="width:92px" value="${esc(state.upfrontMin)}"><span style="color:var(--muted)">—</span><input id="ex-upmax" type="number" step="any" class="dd-btn" placeholder="max" style="width:92px" value="${esc(state.upfrontMax)}"></div></div>
+      <div class="fgroup"><label>潜在总额 Total (USD M)</label><div style="display:flex;gap:6px;align-items:center"><input id="ex-totalmin" type="number" step="any" class="dd-btn" placeholder="min" style="width:92px" value="${esc(state.totalMin)}"><span style="color:var(--muted)">—</span><input id="ex-totalmax" type="number" step="any" class="dd-btn" placeholder="max" style="width:92px" value="${esc(state.totalMax)}"></div></div>
+      <div class="fgroup"><label>签署日期 Date</label><div style="display:flex;gap:6px;align-items:center"><input id="ex-datefrom" type="date" class="dd-btn" value="${esc(state.dateFrom)}"><span style="color:var(--muted)">—</span><input id="ex-dateto" type="date" class="dd-btn" value="${esc(state.dateTo)}"></div></div>
+      <div class="fgroup"><label>里程碑 Milestone</label><select id="ex-milestone" class="dd-btn"><option value="all" ${state.milestone==='all'?'selected':''}>全部 All</option><option value="derivable" ${state.milestone==='derivable'?'selected':''}>可派生 Derivable</option><option value="not_derivable" ${state.milestone==='not_derivable'?'selected':''}>不可派生 Not Derivable</option></select></div>
+      <button class="dd-btn" id="ex-export" style="margin-left:auto">导出 CSV Export CSV</button>
     </div>
     <div id="ex-table">${dealTableHtml(rows.map(normalizeDeal))}</div>
     <div style="margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:flex-end">
       <button class="dd-btn" id="ex-prev" ${exPage<=0?'disabled':''}>上一页 Prev</button>
-      <span style="color:var(--muted)">第 ${exPage+1} / ${totalPages} 页</span>
+      <span id="ex-pageinfo" style="color:var(--muted)">第 ${exPage+1} / ${totalPages} 页</span>
       <button class="dd-btn" id="ex-next" ${exPage>=totalPages-1?'disabled':''}>下一页 Next</button>
     </div>
   </div>`;
   document.getElementById('ex-search').oninput = e=>{
-    state.search = e.target.value; syncUrl();
+    state.search = e.target.value; syncUrl(); exPage = 0;
     clearTimeout(renderExplorer._t);
-    renderExplorer._t = setTimeout(async ()=>{
-      exPage = 0;
-      const d2 = await fetchExplorerPage();
-      document.getElementById('ex-count').textContent = '共 ' + (d2.total||0) + ' 笔';
-      document.getElementById('ex-table').innerHTML = dealTableHtml((d2.deals||[]).map(normalizeDeal));
-    }, 300);
+    renderExplorer._t = setTimeout(refreshExplorerTable, 300);
+  };
+  const bindAdv = (id, key) => {
+    const el = document.getElementById(id);
+    el.oninput = el.onchange = ()=>{
+      state[key] = el.value; syncUrl(); exPage = 0;
+      clearTimeout(renderExplorer._t);
+      renderExplorer._t = setTimeout(refreshExplorerTable, 300);
+    };
+  };
+  bindAdv('ex-upmin','upfrontMin'); bindAdv('ex-upmax','upfrontMax');
+  bindAdv('ex-totalmin','totalMin'); bindAdv('ex-totalmax','totalMax');
+  bindAdv('ex-datefrom','dateFrom'); bindAdv('ex-dateto','dateTo');
+  document.getElementById('ex-milestone').onchange = e=>{
+    state.milestone = e.target.value; syncUrl(); exPage = 0; refreshExplorerTable();
+  };
+  document.getElementById('ex-export').onclick = ()=>{
+    window.location.href = '/api/deals/export?' + stateParams().toString();
   };
   document.getElementById('ex-prev').onclick = ()=>{ exPage = Math.max(0, exPage-1); renderMain(); };
   document.getElementById('ex-next').onclick = ()=>{ exPage++; renderMain(); };
@@ -1383,6 +1432,8 @@ function resetFilters(){
   state.years=[2020,2026];
   state.dealType=new Set(DTYPES); state.modality=new Set(MODS.map(m=>m.k));
   state.indication=new Set(INDS); state.stage=new Set(STAGES); state.regionGroup=new Set(REGION_GROUPS); state.disclosure=new Set(DISCLOSURE_VALUES); state.search='';
+  state.upfrontMin=''; state.upfrontMax=''; state.totalMin=''; state.totalMax='';
+  state.dateFrom=''; state.dateTo=''; state.milestone='all';
 }
 document.addEventListener('click', ()=>{ document.querySelectorAll('.dd-menu').forEach(m=>m.classList.remove('open')); });
 document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeDeal(); });
