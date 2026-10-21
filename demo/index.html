@@ -402,7 +402,7 @@ function renderWorldMap(elId, deals){
   const agg = {};
   deals.forEach(d=>{ if(!agg[d.region]) agg[d.region]={n:0, v:0}; agg[d.region].n++; if(d.hasTotal) agg[d.region].v+=d.total||0; });
   const max = Math.max(1, ...Object.values(agg).map(x=>x.n));
-  const entries = Object.entries(agg).sort((a,b)=>b[1].n-a[1].n).slice(0,8);
+  const entries = Object.entries(agg).sort((a,b)=>b[1].n-a[1].n).slice(0,6);
   el.innerHTML = `<div class="footprint">${entries.map(([r,a])=>{
     const c = REGION_COLORS[r]||'#94a3b8';
     const active = state.region.size===1 && state.region.has(r);
