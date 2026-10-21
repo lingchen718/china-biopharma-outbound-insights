@@ -1119,7 +1119,7 @@ function buildNetworkOption(deals){
   const edges=[...em.values()].map(e=>({source:e.s,target:e.t,value:e.v,lineStyle:{width:Math.min(1+e.v,8),color:'#334155',curveness:0.12}}));
   const option = { tooltip:{...TOOLTIP_DARK, formatter:p=>p.dataType==='edge'?`${p.data.source} ↔ ${p.data.target}<br/>交易：<b>${p.data.value}</b>`:`${p.name}<br/>交易：<b>${nm.get(p.name).cnt}</b>`},
     legend:[{data:['中国公司','海外公司'], bottom:8, textStyle:{fontSize:11, color:'#cbd5e1'}}],
-    series:[{type:'graph', layout:'force', roam:true, draggable:true, force:{repulsion:260, edgeLength:110, gravity:0.08}, categories:[{name:'中国公司'},{name:'海外公司'}], label:{show:true, fontSize:10, color:'#cbd5e1'}, data:nodes, edges, emphasis:{focus:'adjacency', lineStyle:{width:6}}}]
+    series:[{type:'graph', layout:'force', roam:true, draggable:true, force:{repulsion:260, edgeLength:110, gravity:0.08}, categories:[{name:'中国公司', itemStyle:{color:'#ef4444'}},{name:'海外公司', itemStyle:{color:'#60a5fa'}}], label:{show:true, fontSize:10, color:'#cbd5e1'}, data:nodes, edges, emphasis:{focus:'adjacency', lineStyle:{width:6}}}]
   };
   return {option, nm};
 }
