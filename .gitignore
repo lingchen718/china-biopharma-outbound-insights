@@ -2,3 +2,6 @@
 
 # SQLite local database (generated, not committed)
 *.db
+
+__pycache__/
+*.pyc
