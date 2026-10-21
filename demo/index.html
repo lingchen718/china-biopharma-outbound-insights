@@ -1076,7 +1076,7 @@ async function renderTherapy(){
     legend:{top:0, data:tmSeries.map(x=>x.name), textStyle:{fontSize:10, color:'#cbd5e1'}, itemWidth:10, itemHeight:8},
     grid:{left:48,right:16,top:30,bottom:32,containLabel:true},
     xAxis:{type:'value', ...AXIS, name:'交易活跃度 Deal Count（独立交易笔数）', nameTextStyle:{color:'#8b9bb0'}, scale:true},
-    yAxis:{type:'value', ...AXIS, name: therapyOppValue==='medianTotal' ? 'Median Total (US$M)' : 'Median Upfront (US$M)', nameLocation:'middle', nameGap:30, nameTextStyle:{color:'#8b9bb0'}, scale:true},
+    yAxis:{type:'value', ...AXIS, name: therapyOppValue==='medianTotal' ? 'Median Total (US$M)' : 'Median Upfront (US$M)', nameLocation:'middle', nameGap:42, nameTextStyle:{color:'#8b9bb0'}, scale:true},
     series:tmSeries
   });
   if(thOppChart) thOppChart.on('click', p=>{ if(p.data && p.data._r){ openIndMod(p.data._r.indication, p.data._r.modality); } });
