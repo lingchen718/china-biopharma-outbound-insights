@@ -1112,7 +1112,7 @@ window.__companySort = function(sel){
 function buildNetworkOption(deals){
   const nm=new Map(), em=new Map();
   deals.forEach(d=>{
-    [['cn',d.licensor],['os',d.licensee]].forEach(([side,name])=>{ if(!nm.has(name)) nm.set(name,{name,cn:side==='cn',cnt:0}); nm.get(name).cnt++; });
+    [['cn',d.licensor],['os',d.licensee]].forEach(([side,name])=>{ if(!nm.has(name)) nm.set(name,{name,cn:false,cnt:0}); const n=nm.get(name); if(side==='cn') n.cn=true; n.cnt++; });
     const key=d.licensor+'|'+d.licensee; if(!em.has(key)) em.set(key,{s:d.licensor,t:d.licensee,v:0}); em.get(key).v++;
   });
   const nodes=[...nm.values()].map(n=>({id:n.name,name:n.name,category:n.cn?0:1,symbolSize:12+Math.sqrt(n.cnt)*5,itemStyle:{color:n.cn?'#ef4444':'#60a5fa'}}));
