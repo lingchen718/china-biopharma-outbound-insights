@@ -203,7 +203,7 @@ const COUNTRY_REGION = {
   'Indonesia':'Emerging Markets','India':'Emerging Markets','Brazil':'Emerging Markets',
   'Global':'Global'
 };
-const COUNTRY_FLAGS = {'United States':'🇺🇸','Canada':'🇨🇦','Germany':'🇩🇪','United Kingdom':'🇬🇧','Switzerland':'🇨🇭','France':'🇫🇷','Japan':'🇯🇵','South Korea':'🇰🇷','Singapore':'🇸🇬','Australia':'🇦🇺','Indonesia':'🇮🇩','India':'🇮🇳','Brazil':'🇧🇷','Global':'🌎'};
+const COUNTRY_FLAGS = {'United States':'🇺🇸','Canada':'🇨🇦','Germany':'🇩🇪','United Kingdom':'🇬🇧','Switzerland':'🇨🇭','France':'🇫🇷','Japan':'🇯🇵','South Korea':'🇰🇷','Singapore':'🇸🇬','Australia':'🇦🇺','Indonesia':'🇮🇩','India':'🇮🇳','Brazil':'🇧🇷','Europe':'🇪🇺','Southeast Asia':'🌏','Middle East':'🌍','Global':'🌎','Other':'🏳️'};
 
 const CN_COMPANIES = ['百济神州 BeiGene','信达生物 Innovent','成都先导 HitGen','英矽智能 Insilico','晶泰科技 XtalPi','天演药业 Adagene','绿叶制药 Luye','百奥泰 Bio-Thera','君实生物 Junshi','沃森生物 Walvax','科伦博泰 Kelun-Biotech','荣昌生物 RemeGen','石药集团 CSPC','科济药业 CARsgen','华东医药 Huadong','上海医药 Shanghai Pharma','济民可信 Jemincare','锐格医药 Regor','诺诚健华 InnoCare','海思科 Haisco'];
 const OS_COMPANIES = ['Novartis','Pfizer','Merck KGaA','AstraZeneca','Johnson & Johnson','Roche','Sanofi','Eli Lilly','Gilead','Takeda','Astellas','Daiichi Sankyo','MSD','Bristol Myers Squibb','Boehringer Ingelheim','Amgen','Regeneron','Biogen','Seagen','Samsung Biologics','LG Chem','SK Bioscience','Handok','Etana'];
@@ -529,6 +529,24 @@ function renderGeoFromServer(elId, geo){
   }).join('')}</div>
   <div class="hint" style="font-size:11px;margin-top:8px">按授权区域（region）展示，取交易笔数最高的 8 个区域；点击区域 → 全局筛选。</div>`;
 }
+function renderGeoCountriesFromServer(elId, geo){
+  const el = document.getElementById(elId);
+  const max = Math.max(1, ...(geo||[]).map(x=>x.deals||0));
+  el.innerHTML = `<div class="footprint">${(geo||[]).map(g=>{
+    const c = REGION_COLORS[g.region]||'#94a3b8';
+    const active = state.region.size===1 && state.region.has(g.region);
+    return `<div class="fp-tile ${active?'active':''}" style="--c:${c}" onclick="state.region=new Set(['${g.region}']);showToast('已按授权区域筛选：${labelOf('region',g.region)}');render();">
+      <div class="fp-flag">${COUNTRY_FLAGS[g.country]||'🌐'}</div>
+      <div class="fp-name">${g.country}</div>
+      <div class="fp-region">${labelOf('region',g.region)}</div>
+      <div class="fp-n">${g.deals} <span style="font-size:12px;color:var(--muted);font-weight:500">笔</span></div>
+      <div class="fp-v">披露总额 ${fmtM(g.value)}</div>
+      <div class="fp-bar"><span style="width:${Math.round((g.deals||0)/max*100)}%;background:${c}"></span></div>
+    </div>`;
+  }).join('')}</div>
+  <div class="hint" style="font-size:11px;margin-top:8px">按授权区域（territory）国家/地区粒度展示，取交易笔数最高的 12 个；点击 → 以区域（region）筛选。</div>`;
+}
+
 async function renderOverview(){
   const q = stateParams();
   const t = new URLSearchParams(q.toString()); t.set('metric', ovMetric); t.set('dim', ovDim);
@@ -536,7 +554,7 @@ async function renderOverview(){
   const [kpis, trends, geo, recent] = await Promise.all([
     fetch('/api/overview/kpis?'+q.toString()).then(r=>r.json()),
     fetch('/api/overview/trends?'+t.toString()).then(r=>r.json()),
-    fetch('/api/geo/territory?'+q.toString()).then(r=>r.json()),
+    fetch('/api/geo/countries?'+q.toString()).then(r=>r.json()),
     fetch('/api/deals?'+d.toString()).then(r=>r.json())
   ]);
   main.innerHTML = title('市场概览 Overview', PAGE_EN.overview) + kpiHtmlFromServer(kpis) +
@@ -548,7 +566,7 @@ async function renderOverview(){
   </div>
   <div class="card" style="margin-top:14px"><h3><span class="zh">最近交易</span> <span class="en">Recent Transactions</span></h3><div id="ov-recent"></div></div>`;
   mount('ov-trend', trendFromServer(trends, ovMetric, ovDim));
-  renderGeoFromServer('ov-map', geo);
+  renderGeoCountriesFromServer('ov-map', geo);
   document.getElementById('ov-recent').innerHTML = dealTableHtml((recent.deals||[]).map(normalizeDeal));
   wireSwitch('ov-metric', METRIC_LABEL, ovMetric, m=>{ ovMetric=m; render(); });
   wireSwitch('ov-dim', {modality:'药物形式', indication:'治疗领域', stage:'研发阶段', region:'授权区域'}, ovDim, d=>{ ovDim=d; render(); });

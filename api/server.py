@@ -135,6 +135,56 @@ def ep_geo(qs):
     w, a = filter_clause(qs)
     return rows("SELECT region, COUNT(*) AS deals, COALESCE(SUM(total_value_musd),0) AS value FROM deals" + w + " GROUP BY region ORDER BY deals DESC LIMIT 8", a)
 
+COUNTRY_KEYWORDS = [
+    ("United States", ("united states"," us","美国","美加")),
+    ("Canada", ("canada","加拿大")),
+    ("Japan", ("japan","日本")),
+    ("South Korea", ("korea","韩国")),
+    ("Germany", ("germany","德国")),
+    ("United Kingdom", ("united kingdom"," uk","英国")),
+    ("France", ("france","法国")),
+    ("Switzerland", ("switzerland","瑞士")),
+    ("Singapore", ("singapore","新加坡")),
+    ("Australia", ("australia","澳大利亚","澳洲")),
+    ("Indonesia", ("indonesia","印尼","印度尼西亚")),
+    ("India", ("india","印度")),
+    ("Brazil", ("brazil","巴西")),
+    ("Europe", ("europe"," eu","欧盟","欧洲")),
+    ("Southeast Asia", ("southeast asia","东南亚")),
+    ("Middle East", ("middle east","中东")),
+    ("Global", ("global","全球")),
+]
+COUNTRY_REGION = {
+    "United States":"US & Canada","Canada":"US & Canada",
+    "Japan":"APAC","South Korea":"APAC","Singapore":"APAC","Australia":"APAC",
+    "Germany":"Europe","United Kingdom":"Europe","France":"Europe","Switzerland":"Europe",
+    "Indonesia":"Emerging Markets","India":"Emerging Markets","Brazil":"Emerging Markets",
+    "Europe":"Europe","Southeast Asia":"APAC","Middle East":"Emerging Markets","Global":"Global",
+}
+
+def _territory_countries(terr):
+    t = (terr or "").lower()
+    found = []
+    for c, kws in COUNTRY_KEYWORDS:
+        for kw in kws:
+            if kw in t:
+                found.append(c); break
+    return found if found else ["Other"]
+
+def ep_geo_countries(qs):
+    w, a = filter_clause(qs)
+    raw = rows("SELECT territory, has_total, total_value_musd FROM deals" + (w or ""), a)
+    agg = {}
+    for r in raw:
+        for c in _territory_countries(r["territory"]):
+            g = agg.setdefault(c, {"deals":0,"value":0.0})
+            g["deals"] += 1
+            if r["has_total"] and r["total_value_musd"] is not None:
+                g["value"] += r["total_value_musd"]
+    out = [{"country":c,"region":COUNTRY_REGION.get(c,"Other"),"deals":g["deals"],"value":round(g["value"],2)} for c,g in agg.items()]
+    out.sort(key=lambda x:-x["deals"])
+    return out[:12]
+
 def ep_landscape(qs, dim):
     if dim not in ("modality","indication","stage","deal_type"): dim = "modality"
     w, a = filter_clause(qs)
@@ -417,6 +467,7 @@ ENDPOINTS = {
     "/api/overview/kpis": ep_overview_kpis,
     "/api/overview/trends": ep_overview_trends,
     "/api/geo/territory": ep_geo,
+    "/api/geo/countries": ep_geo_countries,
     "/api/economics/snapshot": ep_economics_snapshot,
     "/api/economics/activity-value-trends": ep_economics_trends,
     "/api/economics/distribution": ep_economics_distribution,
