@@ -62,6 +62,9 @@
 
   .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
   .kpis-inline { grid-template-columns: repeat(3, 1fr); }
+  .kpis-5 { grid-template-columns: repeat(5, 1fr); }
+  .kpis-4 { grid-template-columns: repeat(4, 1fr); }
+  .kpis-3 { grid-template-columns: repeat(3, 1fr); }
   .kpi { position: relative; overflow: hidden; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
   .kpi::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--k, var(--accent)); }
   .kpi .value { color: var(--k, var(--ink)); }
@@ -134,6 +137,43 @@
     .kpis { grid-template-columns: repeat(3, 1fr); }
     .g2, .g3 { grid-template-columns: 1fr; }
     .duo { grid-template-columns: 1fr; }
+  }
+
+  /* ===== 移动端适配 ===== */
+  @media (max-width: 720px) {
+    .topbar-inner { padding: 10px 14px 8px; gap: 8px; }
+    .brand { gap: 10px; }
+    .brand .logo { width: 34px; height: 34px; }
+    .brand .logo svg { width: 28px; height: 28px; }
+    .brand h1 { font-size: 15px; white-space: normal; }
+    .brand p { font-size: 10.5px; white-space: normal; line-height: 1.4; }
+    .nav { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+    .nav button { flex: 0 0 auto; padding: 9px 12px; }
+    .filterbar-inner { padding: 8px 14px; flex-wrap: wrap; gap: 8px; }
+    main { padding: 14px 14px 56px; }
+    .page-title h2 { font-size: 18px; }
+    .kpis { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .kpis-inline { grid-template-columns: 1fr 1fr; }
+    .kpis-5, .kpis-4, .kpis-3 { grid-template-columns: repeat(2, 1fr); }
+    .kpi { padding: 12px; }
+    .kpi .value { font-size: 20px; }
+    .card { padding: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .card h3 { font-size: 13.5px; }
+    table.tbl { min-width: 620px; }
+    .leader { flex-direction: column; flex-wrap: nowrap; }
+    .leader .side { min-width: 0; width: 100%; }
+    .footprint { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+    .deal-head { flex-wrap: wrap; }
+    .fact { grid-template-columns: 1fr; }
+    .dd-btn { padding: 8px 12px; }
+    .modal { padding: 16px; }
+  }
+
+  @media (max-width: 420px) {
+    .kpis { grid-template-columns: 1fr 1fr; }
+    .footprint { grid-template-columns: 1fr 1fr; }
+    .fp-name { font-size: 12px; }
+    .brand h1 { font-size: 14px; }
   }
 </style>
 </head>
@@ -822,7 +862,7 @@ async function renderEconomics(){
   const colorLegend = MODS.map(m=>`<span style="display:inline-flex;align-items:center;gap:4px"><i style="width:10px;height:10px;border-radius:50%;background:${m.c}"></i>${m.k}</span>`).join('');
 
   main.innerHTML = title('交易金额 Deal Economics', PAGE_EN.economics) +
-  `<div class="kpis" style="grid-template-columns:repeat(5,1fr)">
+  `<div class="kpis kpis-5">
     ${[ ['已披露首付款笔数 Deals with Disclosed Upfronts', fmtInt(nUp)+' / '+fmtInt(totalRows), upCov+'% coverage', '#facc15'],
         ['已披露首付款总额 Total Disclosed Upfront', fmtM(snap.total_upfront), 'US$', '#60a5fa'],
         ['已披露首付款中位数 Median Upfront', fmtM(snap.median_upfront), 'US$M / deal', '#f87171'],
@@ -1216,7 +1256,7 @@ function renderCompanies(deals){
     <p class="hint">First-time = the first independent deal between a licensor–licensee pair; repeat = a subsequent independent deal between the same pair. Metrics reflect facts only, not necessarily improved partnership quality.</p>
     <p class="hint">【重复合作交易占比】回答：近期的授权交易活动，多大程度上来自既有合作关系？【重复合作关系占比】回答：合作网络中，有多少组伙伴已经形成重复交易关系？</p>
     <p class="hint">Repeat Deal Share answers: to what extent recent licensing-out activity comes from existing partnerships? Repeat Relationship Share answers: how many licensor–licensee pairs in the network have formed repeat transaction relationships?</p>
-    <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpis kpis-4">
       <div class="kpi" style="--k:#60a5fa"><div class="label">首次合作交易占比 First-time Deal Share</div><div class="value">${rel.firstShare.toFixed(1)}%</div><div class="sub">${rel.firstN} / ${rel.total} deals</div></div>
       <div class="kpi" style="--k:#facc15"><div class="label">重复合作交易占比 Repeat Deal Share</div><div class="value">${rel.repeatDealShare.toFixed(1)}%</div><div class="sub">${rel.repeatN} / ${rel.total} deals</div></div>
       <div class="kpi" style="--k:#34d399"><div class="label">重复合作关系占比 Repeat Relationship Share</div><div class="value">${rel.repeatRelShare.toFixed(1)}%</div><div class="sub">${rel.repeatPairs.length} repeat pairs</div></div>
@@ -1389,7 +1429,7 @@ async function openQuality(){
   document.getElementById('modal').innerHTML = `
     <button class="x" onclick="closeDeal()">✕</button>
     <div class="deal-head"><b>数据质量 Data Quality</b></div>
-    <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpis kpis-3">
       <div class="kpi"><div class="label">总记录 Total Deals</div><div class="value">${q.total}</div></div>
       <div class="kpi"><div class="label">已披露首付款 Upfront Disclosed</div><div class="value">${d.upfront_disclosed}</div></div>
       <div class="kpi"><div class="label">已披露总额 Total Disclosed</div><div class="value">${d.total_disclosed}</div></div>
