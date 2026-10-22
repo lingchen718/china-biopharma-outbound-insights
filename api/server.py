@@ -186,7 +186,7 @@ def ep_overview_trends(qs):
     val = {"count":"COUNT(*)","upfront":"COALESCE(SUM(CASE WHEN has_upfront=1 THEN upfront_musd END),0)",
            "total":"COALESCE(SUM(CASE WHEN has_total=1 THEN total_value_musd END),0)"}.get(metric, "COUNT(*)")
     cats = [r["v"] for r in rows(f"SELECT DISTINCT {dim} AS v FROM deals WHERE {dim} IS NOT NULL AND {dim}!='' ORDER BY {dim}")]
-    years = [2020,2021,2022,2023,2024,2025,2026]
+    years = [2019,2020,2021,2022,2023,2024,2025,2026]
     w, a = filter_clause(qs)
     grid = rows(f"SELECT year, {dim} AS dim, {val} AS v FROM deals" + w + f" GROUP BY year, {dim}", a)
     g = {(r["year"], r["dim"]): r["v"] for r in grid}
@@ -279,7 +279,7 @@ def ep_economics_milestones(qs):
 
 def ep_pipeline_modality():
     cats = [r["v"] for r in rows("SELECT DISTINCT modality AS v FROM deals WHERE modality!='' ORDER BY modality")]
-    years = [2020,2021,2022,2023,2024,2025,2026]
+    years = [2019,2020,2021,2022,2023,2024,2025,2026]
     grid = rows("SELECT year, modality, COUNT(*) v FROM deals GROUP BY year, modality")
     g = {(r["year"],r["modality"]): r["v"] for r in grid}
     return {"years": years, "series": [{"name": c, "data":[g.get((y,c),0) for y in years]} for c in cats]}
@@ -296,7 +296,7 @@ def ep_pipeline_assets():
 
 def ep_therapy_trends():
     cats = [r["v"] for r in rows("SELECT DISTINCT indication AS v FROM deals WHERE indication!='' ORDER BY indication")]
-    years = [2020,2021,2022,2023,2024,2025,2026]
+    years = [2019,2020,2021,2022,2023,2024,2025,2026]
     grid = rows("SELECT year, indication, COUNT(*) v FROM deals GROUP BY year, indication")
     g = {(r["year"],r["indication"]): r["v"] for r in grid}
     return {"years": years, "series": [{"name": c, "data":[g.get((y,c),0) for y in years]} for c in cats]}

@@ -8,7 +8,7 @@ if ROOT not in sys.path:
 
 from etl.geo_taxonomy import REGION_CANON, REGION_GROUPS, resolve_region, resolve_territory
 BASE = os.environ.get("ETL_DATA_DIR", os.path.join(ROOT, "normalized_data"))
-YEARS = [2020, 2021, 2022, 2023, 2024, 2025, 2026]
+YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
 OUT_DIR = os.path.join(ROOT, "data")
 UPDATES_DIR = os.environ.get("ETL_UPDATES_DIR", os.path.join(ROOT, "updates"))
 
