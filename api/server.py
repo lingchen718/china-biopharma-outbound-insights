@@ -209,7 +209,7 @@ def ep_geo_countries(qs):
             g["value"] += r["total_value_musd"]
     out = [{"country":k,"region":g["region"],"deals":g["deals"],"value":round(g["value"],2)} for k,g in agg.items()]
     out.sort(key=lambda x:-x["deals"])
-    return out[:12]
+    return out
 
 def ep_landscape(qs, dim):
     if dim not in ("modality","indication","stage","deal_type"): dim = "modality"

@@ -560,10 +560,16 @@ function renderGeoFromServer(elId, geo){
   }).join('')}</div>
   <div class="hint" style="font-size:11px;margin-top:8px">按授权区域（region）展示，取交易笔数最高的 8 个区域；点击区域 → 全局筛选。</div>`;
 }
-function renderGeoCountriesFromServer(elId, geo){
+function renderGeoCountriesFromServer(elId, geo, total){
   const el = document.getElementById(elId);
-  const max = Math.max(1, ...(geo||[]).map(x=>x.deals||0));
-  el.innerHTML = `<div class="footprint">${(geo||[]).map(g=>{
+  const rows = (geo||[]).slice(0,12);
+  const max = Math.max(1, ...rows.map(x=>x.deals||0));
+  const displayed = rows.reduce((s,x)=>s+(x.deals||0),0);
+  const totalN = total || 0;
+  const remaining = Math.max(0, totalN - displayed);
+  const remainingN = Math.max(0, (geo||[]).length - 12);
+  const pct = totalN ? Math.round(displayed/totalN*100) : 0;
+  el.innerHTML = `<div class="footprint">${rows.map(g=>{
     const c = REGION_GROUP_COLORS[g.region]||'#94a3b8';
     const active = state.regionGroup.size===1 && state.regionGroup.has(g.region);
     return `<div class="fp-tile ${active?'active':''}" style="--c:${c}" onclick="state.regionGroup=new Set(['${g.region}']);showToast('已按授权区域筛选：${labelOf('regionGroup',g.region)}');render();">
@@ -575,7 +581,7 @@ function renderGeoCountriesFromServer(elId, geo){
       <div class="fp-bar"><span style="width:${Math.round((g.deals||0)/max*100)}%;background:${c}"></span></div>
     </div>`;
   }).join('')}</div>
-  <div class="hint" style="font-size:11px;margin-top:8px">按授权区域（territory）解析为国家/地区或区域桶，取交易笔数最高的 12 个；点击 → 以上层大区（region group）筛选。</div>`;
+  <div class="hint" style="font-size:11px;margin-top:8px">按授权区域（territory）展示前 12 个：合计 ${displayed}/${totalN} 笔（覆盖 ${pct}%），其余 ${remainingN} 个区域共 ${remaining} 笔。点击 → 以上层大区（region group）筛选。</div>`;
 }
 
 async function renderOverview(){
@@ -602,7 +608,7 @@ async function renderOverview(){
   <div class="card" style="margin-top:14px"><h3><span class="zh">最近交易</span> <span class="en">Recent Transactions</span></h3><div id="ov-recent"></div></div>`;
   const ovTrendChart = mount('ov-trend', trendFromServer(trends, ovMetric, ovDim));
   requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ if(ovTrendChart) ovTrendChart.resize(); }); });
-  renderGeoCountriesFromServer('ov-map', geo);
+  renderGeoCountriesFromServer('ov-map', geo, kpis.total_deals);
   document.getElementById('ov-recent').innerHTML = dealTableHtml((recent.deals||[]).map(normalizeDeal));
   wireSwitch('ov-metric', METRIC_LABEL, ovMetric, m=>{ ovMetric=m; render(); });
   wireSwitch('ov-dim', {modality:'药物形式', indication:'治疗领域', stage:'研发阶段', region:'授权区域'}, ovDim, d=>{ ovDim=d; render(); });
